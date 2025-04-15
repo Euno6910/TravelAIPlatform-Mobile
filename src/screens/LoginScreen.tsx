@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Auth } from 'aws-amplify';
+
 import {
   View,
   Text,
@@ -20,13 +22,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // 실제 구현에서는 서버 인증 로직이 들어갑니다
-    if (email.trim() && password.trim()) {
-      // 성공적으로 로그인 시 홈 화면으로 이동
-      navigation.navigate('Home');
-    } else {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
       Alert.alert('오류', '모든 필드를 입력해주세요.');
+      return;
+    }
+  
+    try {
+      const user = await Auth.signIn(email, password);
+      console.log('로그인 성공:', user);
+      navigation.navigate('Home');
+    } catch (error: any) {
+      console.error('로그인 실패:', error);
+      Alert.alert('로그인 실패', error.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 
@@ -82,7 +90,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>계정이 없으신가요?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
               <Text style={styles.signupLink}>회원가입</Text>
             </TouchableOpacity>
           </View>

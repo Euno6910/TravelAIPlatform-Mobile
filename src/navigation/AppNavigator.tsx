@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // 화면 컴포넌트 가져오기
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 import PlanCreationScreen from '../screens/PlanCreationScreen';
 import PlanResultScreen from '../screens/PlanResultScreen';
 
@@ -12,7 +13,7 @@ import PlanResultScreen from '../screens/PlanResultScreen';
 export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
-  Signup: undefined;
+  SignUp: undefined;
   ForgotPassword: undefined;
   PlanCreation: undefined;
   PlanResult: {
@@ -38,6 +39,7 @@ const AppNavigator: React.FC = () => {
       >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="PlanCreation" component={PlanCreationScreen} />
         <Stack.Screen name="PlanResult" component={PlanResultScreen} />
       </Stack.Navigator>
