@@ -8,6 +8,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import PlanCreationScreen from '../screens/PlanCreationScreen';
 import PlanResultScreen from '../screens/PlanResultScreen';
+import MyPageScreen from '../screens/MyPageScreen';
 
 // 네비게이션 스택 타입 정의
 export type RootStackParamList = {
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   PlanCreation: undefined;
+  MyPage: undefined;
   PlanResult: {
     destination: string;
     startDate: string;
@@ -40,6 +42,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="MyPage" component={MyPageScreen} />
         <Stack.Screen name="PlanCreation" component={PlanCreationScreen} />
         <Stack.Screen name="PlanResult" component={PlanResultScreen} />
       </Stack.Navigator>

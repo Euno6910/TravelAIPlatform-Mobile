@@ -20,14 +20,30 @@ type SignUpScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 
 const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword || !name) {
+    if (!email || !password || !confirmPassword || !name || !birthdate || !phoneNumber) {
       Alert.alert('입력 오류', '모든 필드를 입력해주세요.');
+      return;
+    }
+
+    // 전화번호 형식 검증 (+82로 시작하는 번호)
+    const phoneRegex = /^\+82\d{10}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      Alert.alert('전화번호 오류', '올바른 전화번호 형식이 아닙니다.\n예: +8210xxxxxxxx');
+      return;
+    }
+
+    // 생년월일 형식 검증 (YYYY-MM-DD)
+    const birthdateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!birthdateRegex.test(birthdate)) {
+      Alert.alert('생년월일 오류', '올바른 생년월일 형식이 아닙니다.\n예: 2002-10-17');
       return;
     }
 
@@ -52,7 +68,7 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
     // 회원가입 확인 팝업
     Alert.alert(
       '회원가입 확인',
-      `다음 정보로 회원가입을 진행하시겠습니까?\n\n이름: ${name}\n이메일: ${email}`,
+      `다음 정보로 회원가입을 진행하시겠습니까?\n\n이름: ${name}\n이메일: ${email}\n생년월일: ${birthdate}\n전화번호: ${phoneNumber}`,
       [
         {
           text: '취소',
@@ -67,7 +83,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 password,
                 attributes: {
                   email,
-                  name
+                  name,
+                  birthdate,
+                  phone_number: phoneNumber
                 }
               });
               setIsConfirming(true);
@@ -106,7 +124,11 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -136,11 +158,12 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                     placeholder="이름을 입력하세요"
                     value={name}
                     onChangeText={setName}
+                    keyboardType="default"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    keyboardType="default"
-                    returnKeyType="done"
-                    maxLength={20}
+                    textContentType="none"
+                    multiline={false}
+                    clearButtonMode="while-editing"
                   />
                 </View>
 
@@ -153,6 +176,30 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>생년월일</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    value={birthdate}
+                    onChangeText={setBirthdate}
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={10}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>전화번호</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+8210xxxxxxxx"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    keyboardType="phone-pad"
+                    maxLength={13}
                   />
                 </View>
 
@@ -230,10 +277,10 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 30,
+    paddingBottom: 200,
   },
   keyboardView: {
-    flex: 1,
+    width: '100%',
   },
   header: {
     padding: 15,
@@ -259,6 +306,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 20,
+    paddingBottom: 150,
   },
   formTitle: {
     fontSize: 20,

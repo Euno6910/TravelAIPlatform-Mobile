@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,23 +8,71 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
+import { Auth } from 'aws-amplify';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-interface HomeScreenProps {
-  navigation: any;
-}
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    checkAuthState();
+  }, []);
+
+  const checkAuthState = async () => {
+    try {
+      const user = await Auth.currentAuthenticatedUser();
+      setIsLoggedIn(true);
+      setUserName(user.attributes.name || user.attributes.email);
+    } catch (error) {
+      setIsLoggedIn(false);
+      setUserName('');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await Auth.signOut();
+      setIsLoggedIn(false);
+      setUserName('');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.logo}>바람길</Text>
-          <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <Text style={styles.loginText}>로그인</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {isLoggedIn ? (
+              <>
+                <TouchableOpacity 
+                  style={styles.headerButton}
+                  onPress={() => navigation.navigate('MyPage')}
+                >
+                  <Text style={styles.headerButtonText}>마이페이지</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.headerButton}
+                  onPress={handleLogout}
+                >
+                  <Text style={styles.headerButtonText}>로그아웃</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.headerButtonText}>로그인</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.mainBanner}>
@@ -117,23 +165,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1E88E5',
   },
-  loginButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  loginText: {
-    fontSize: 16,
-    color: '#333',
+  headerButton: {
+    marginLeft: 15,
+    padding: 8,
+    borderRadius: 5,
+    backgroundColor: '#1E88E5',
+  },
+  headerButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   mainBanner: {
     backgroundColor: '#1E88E5',
