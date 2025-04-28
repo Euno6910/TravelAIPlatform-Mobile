@@ -9,6 +9,15 @@ import SignUpScreen from '../screens/SignUpScreen';
 import PlanCreationScreen from '../screens/PlanCreationScreen';
 import PlanResultScreen from '../screens/PlanResultScreen';
 import MyPageScreen from '../screens/MyPageScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+
+// UserAttributes 타입 정의
+export type UserAttributes = {
+  name: string;
+  email: string;
+  birthdate: string;
+  phone_number: string;
+};
 
 // 네비게이션 스택 타입 정의
 export type RootStackParamList = {
@@ -25,6 +34,7 @@ export type RootStackParamList = {
     interests: string[];
     budget: string;
   };
+  EditProfile: { userInfo: UserAttributes };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -45,9 +55,10 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="MyPage" component={MyPageScreen} />
         <Stack.Screen name="PlanCreation" component={PlanCreationScreen} />
         <Stack.Screen name="PlanResult" component={PlanResultScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
-export default AppNavigator; 
+export default AppNavigator;

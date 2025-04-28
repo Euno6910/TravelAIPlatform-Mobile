@@ -10,16 +10,13 @@ import {
 } from 'react-native';
 import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { RootStackParamList, UserAttributes } from '../navigation/AppNavigator';
+
+// API URL 설정
+const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/prod';
+const MY_PAGE_API_URL = `${API_URL}/api/user/mypage`;
 
 type MyPageScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyPage'>;
-
-interface UserAttributes {
-  name: string;
-  email: string;
-  birthdate: string;
-  phone_number: string;
-}
 
 const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }) => {
   const [userInfo, setUserInfo] = useState<UserAttributes | null>(null);
@@ -30,15 +27,28 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
 
   const fetchUserInfo = async () => {
     try {
-      const user = await Auth.currentAuthenticatedUser();
-      const attributes = user.attributes;
-      setUserInfo({
-        name: attributes.name || '',
-        email: attributes.email || '',
-        birthdate: attributes.birthdate || '',
-        phone_number: attributes.phone_number || '',
+      const session = await Auth.currentSession();
+      const token = session.getIdToken().getJwtToken();
+
+      const response = await fetch(MY_PAGE_API_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-    } catch (error) {
+
+      const data = await response.json();
+      if (data.success) {
+        setUserInfo({
+          name: data.user.name,
+          email: data.user.email,
+          birthdate: data.user.birthdate,
+          phone_number: data.user.phoneNumber,
+        });
+      } else {
+        throw new Error('사용자 정보 가져오기 실패');
+      }
+    } catch (error: any) {
       console.error('사용자 정보 조회 실패:', error);
       Alert.alert('오류', '사용자 정보를 불러오는데 실패했습니다.');
     }
@@ -76,22 +86,21 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
           </View>
         )}
 
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => Alert.alert('알림', '프로필 수정 기능은 곧 추가될 예정입니다.')}
-        >
-          <Text style={styles.editButtonText}>프로필 수정</Text>
-        </TouchableOpacity>
+        {userInfo && (
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => navigation.navigate('EditProfile', { userInfo })}
+          >
+            <Text style={styles.editButtonText}>프로필 수정</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -100,23 +109,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  backButton: {
-    fontSize: 24,
-    color: '#333',
-    width: 40,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  headerRight: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
+  backButton: { fontSize: 24, color: '#333', width: 40 },
+  title: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  headerRight: { width: 40 },
+  content: { flex: 1, padding: 20 },
   infoContainer: {
     backgroundColor: '#f8f8f8',
     borderRadius: 10,
@@ -130,17 +126,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  label: {
-    fontSize: 16,
-    color: '#666',
-    flex: 1,
-  },
-  value: {
-    fontSize: 16,
-    color: '#333',
-    flex: 2,
-    textAlign: 'right',
-  },
+  label: { fontSize: 16, color: '#666', flex: 1 },
+  value: { fontSize: 16, color: '#333', flex: 2, textAlign: 'right' },
   editButton: {
     backgroundColor: '#1E88E5',
     padding: 15,
@@ -148,11 +135,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
-export default MyPageScreen; 
+export default MyPageScreen;
