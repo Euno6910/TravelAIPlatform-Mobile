@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 
+//로그인 화면 - 이메일 비밀번호 입력, 로그인 버튼 클릭 시 로그인 처리, 회원가입 링크 클릭 시 회원가입 화면으로 이동, 비밀번호 찾기 링크 클릭 시 비밀번호 찾기 화면으로 이동
 interface LoginScreenProps {
   navigation: any;
 }

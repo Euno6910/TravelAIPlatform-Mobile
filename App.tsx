@@ -4,6 +4,7 @@
  *
  * @format
  */
+// 앱의 진입점 파일 - 앱 실행 시 처음 실행되는 파일
 
 import './src/awsConfig'; // 상대경로 잘 맞춰서 import
 import React from 'react';

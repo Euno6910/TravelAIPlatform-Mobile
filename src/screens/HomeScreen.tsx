@@ -12,6 +12,7 @@ import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
+//앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {

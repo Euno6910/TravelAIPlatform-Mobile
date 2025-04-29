@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+#Ruby 버전 지정
 # You may use http://rbenv.org/ or https://rvm.io/ to install and use this version
 ruby ">= 2.6.10"
 

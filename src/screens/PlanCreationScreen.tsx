@@ -14,6 +14,7 @@ interface PlanCreationScreenProps {
   navigation: any;
 }
 
+//여행 계획 생성 화면 - 여행 계획 생성 단계별 입력, 계획 생성 결과 화면으로 이동  
 const PlanCreationScreen: React.FC<PlanCreationScreenProps> = ({ navigation }) => {
   const [step, setStep] = useState(1);
   const [destination, setDestination] = useState('');

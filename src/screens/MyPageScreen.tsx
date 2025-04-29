@@ -16,6 +16,7 @@ import { RootStackParamList, UserAttributes } from '../navigation/AppNavigator';
 const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/prod';
 const MY_PAGE_API_URL = `${API_URL}/api/user/mypage`;
 
+//마이페이지 화면 - 사용자 정보 조회, 프로필 수정 링크 클릭 시 프로필 수정 화면으로 이동  
 type MyPageScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyPage'>;
 
 const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }) => {

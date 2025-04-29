@@ -6,6 +6,7 @@ import {
   REACT_APP_USER_POOL_CLIENT_ID
 } from '@env';
 
+//AWS Amplify 설정 - Cognito 연동
 Amplify.configure({
   Auth: {
     region: REACT_APP_REGION,
