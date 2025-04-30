@@ -55,6 +55,13 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
     }
   };
 
+  const NavigationButton = ({ title, icon, onPress }: { title: string; icon: string; onPress: () => void }) => (
+    <TouchableOpacity style={styles.navButton} onPress={onPress}>
+      <Text style={styles.navButtonIcon}>{icon}</Text>
+      <Text style={styles.navButtonText}>{title}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -87,14 +94,25 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
           </View>
         )}
 
-        {userInfo && (
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={() => navigation.navigate('EditProfile', { userInfo })}
-          >
-            <Text style={styles.editButtonText}>프로필 수정</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.navigationContainer}>
+          <NavigationButton
+            title="일정 관리"
+            icon="📅"
+            onPress={() => navigation.navigate('TravelSchedule')}
+          />
+          <NavigationButton
+            title="장바구니"
+            icon="🛒"
+            onPress={() => navigation.navigate('TravelCart')}
+          />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.editButton}
+          onPress={() => navigation.navigate('EditProfile', { userInfo: userInfo! })}
+        >
+          <Text style={styles.editButtonText}>프로필 수정</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -129,6 +147,28 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 16, color: '#666', flex: 1 },
   value: { fontSize: 16, color: '#333', flex: 2, textAlign: 'right' },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 10,
+  },
+  navButton: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  navButtonIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
   editButton: {
     backgroundColor: '#1E88E5',
     padding: 15,

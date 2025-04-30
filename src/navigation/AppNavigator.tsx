@@ -11,6 +11,8 @@ import PlanCreationScreen from '../screens/PlanCreationScreen';
 import PlanResultScreen from '../screens/PlanResultScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import TravelCartScreen from '../screens/TravelCartScreen';
+import TravelScheduleScreen from '../screens/TravelScheduleScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -28,6 +30,8 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   PlanCreation: undefined;
   MyPage: undefined;
+  TravelCart: undefined;
+  TravelSchedule: undefined;
   PlanResult: {
     destination: string;
     startDate: string;
@@ -57,6 +61,8 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="PlanCreation" component={PlanCreationScreen} />
         <Stack.Screen name="PlanResult" component={PlanResultScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="TravelCart" component={TravelCartScreen} />
+        <Stack.Screen name="TravelSchedule" component={TravelScheduleScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
