@@ -30,6 +30,9 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
   const [rooms, setRooms] = useState(1);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{type: 'user' | 'ai', text: string}>>([
+    { type: 'ai', text: '안녕하세요! 저는 당신의 여행 계획을 도와줄 AI 어시스턴트입니다. 어떤 여행을 계획하고 계신가요?' }
+  ]);
 
   useEffect(() => {
     checkAuthState();
@@ -64,6 +67,147 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
   const updateGuestCount = () => {
     setGuestCount(`성인 ${adults}명 · 아동 ${children}명 · 객실 ${rooms}개`);
     setShowGuestPicker(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (!userInput.trim()) return;
+
+    // 사용자 메시지를 채팅에 추가
+    setChatMessages(prev => [...prev, { type: 'user', text: userInput }]);
+    setIsTyping(true);
+    setUserInput('');
+
+    try {
+      // Auth 토큰 가져오기 및 로깅
+      let token;
+      let userEmail;
+      try {
+        const session = await Auth.currentSession();
+        token = session.getIdToken().getJwtToken();
+        userEmail = session.getIdToken().payload.email;
+        
+        // 토큰 정보 로깅
+        console.log('세션 정보:', {
+          email: userEmail,
+          tokenExpiration: new Date(session.getIdToken().getExpiration() * 1000).toISOString()
+        });
+        
+        if (!userEmail) {
+          throw new Error('이메일 정보를 찾을 수 없습니다.');
+        }
+      } catch (authError: any) {
+        console.error('인증 토큰 가져오기 실패:', authError);
+        setChatMessages(prev => [...prev, { 
+          type: 'ai', 
+          text: '로그인이 필요하거나 세션이 만료되었습니다. 다시 로그인해주세요.' 
+        }]);
+        setIsTyping(false);
+        return;
+      }
+
+      // API 요청 데이터 준비
+      const requestData = {
+        query: userInput,
+        startDate: selectedDates.split(' ~ ')[0] || '2024-05-01',
+        endDate: selectedDates.split(' ~ ')[1] || '2024-05-03',
+        adults: adults,
+        children: children,
+        email: userEmail  // 이메일 정보 추가
+      };
+
+      console.log('API 요청 데이터:', requestData);
+
+      const response = await fetch('https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/python-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const responseText = await response.text();
+      console.log('Raw API 응답:', responseText);
+
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON 파싱 에러:', parseError);
+        // Gemini 응답에서 JSON 문자열 추출 시도
+        const match = responseText.match(/```json\n([\s\S]*?)\n```/);
+        if (match && match[1]) {
+          try {
+            data = JSON.parse(match[1]);
+          } catch (secondParseError) {
+            console.error('두 번째 JSON 파싱 시도 실패:', secondParseError);
+            throw new Error('서버 응답을 처리할 수 없습니다.');
+          }
+        } else {
+          throw new Error('서버 응답을 처리할 수 없습니다.');
+        }
+      }
+
+      if (data.plan?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const geminiResponse = data.plan.candidates[0].content.parts[0].text;
+        try {
+          // JSON 문자열 추출 시도
+          const match = geminiResponse.match(/```json\n([\s\S]*?)\n```/);
+          const jsonStr = match ? match[1] : geminiResponse;
+          
+          const planData = JSON.parse(jsonStr);
+          let formattedResponse = `🎯 ${planData.title}\n\n`;
+          formattedResponse += `📍 목적지: ${planData.destination}\n`;
+          formattedResponse += `📅 기간: ${planData.duration}\n\n`;
+          
+          // 일정 정보 추가
+          planData.itinerary?.forEach((day: any) => {
+            formattedResponse += `Day ${day.day} (${day.date})\n`;
+            formattedResponse += `${day.title}\n`;
+            day.activities?.forEach((activity: any) => {
+              formattedResponse += `• ${activity.time} - ${activity.title}\n`;
+              if (activity.description) formattedResponse += `  ${activity.description}\n`;
+            });
+            formattedResponse += '\n';
+          });
+
+          // 팁 추가
+          if (planData.tips?.length > 0) {
+            formattedResponse += '\n💡 여행 팁:\n';
+            planData.tips.forEach((tip: string) => {
+              formattedResponse += `• ${tip}\n`;
+            });
+          }
+
+          setChatMessages(prev => [...prev, { 
+            type: 'ai', 
+            text: formattedResponse
+          }]);
+        } catch (parseError) {
+          console.error('여행 계획 JSON 파싱 에러:', parseError);
+          // JSON 파싱 실패시 원본 텍스트 표시
+          setChatMessages(prev => [...prev, { 
+            type: 'ai', 
+            text: geminiResponse.replace(/```json\n|\n```/g, '')
+          }]);
+        }
+      } else {
+        throw new Error('예상치 못한 응답 형식입니다.');
+      }
+    } catch (error: any) {
+      console.error('API 호출 실패:', error);
+      setChatMessages(prev => [...prev, { 
+        type: 'ai', 
+        text: `죄송합니다. 오류가 발생했습니다: ${error.message}` 
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -138,14 +282,22 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
 
         <View style={styles.mainBanner}>
           <View style={styles.chatContainer}>
-            <View style={styles.aiMessageBubble}>
-              <Text style={styles.aiMessageText}>안녕하세요! 저는 당신의 여행 계획을 도와줄 AI 어시스턴트입니다. 어떤 여행을 계획하고 계신가요?</Text>
-              {isTyping && (
-                <View style={styles.typingIndicator}>
-                  <Text style={styles.typingText}>AI가 응답을 작성 중입니다...</Text>
-                </View>
-              )}
-            </View>
+            {chatMessages.map((message, index) => (
+              <View 
+                key={index} 
+                style={[
+                  styles.messageBubble,
+                  message.type === 'user' ? styles.userMessageBubble : styles.aiMessageBubble
+                ]}
+              >
+                <Text style={styles.messageText}>{message.text}</Text>
+              </View>
+            ))}
+            {isTyping && (
+              <View style={styles.typingIndicator}>
+                <Text style={styles.typingText}>AI가 응답을 작성 중입니다...</Text>
+              </View>
+            )}
             <View style={styles.userInputContainer}>
               <View style={styles.inputWrapper}>
                 <TextInput
@@ -158,24 +310,11 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
                 />
                 <TouchableOpacity 
                   style={styles.sendButton}
-                  onPress={() => {
-                    // TODO: AI API 연동
-                    setIsTyping(true);
-                    setTimeout(() => {
-                      setIsTyping(false);
-                      setUserInput('');
-                    }, 2000);
-                  }}
+                  onPress={handleSendMessage}
                 >
                   <Text style={styles.sendButtonText}>전송</Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity 
-                style={styles.startButton}
-                onPress={() => navigation.navigate('PlanCreation')}
-              >
-                <Text style={styles.startButtonText}>여행 계획 시작하기</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -476,11 +615,19 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
   },
+  messageBubble: {
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 10,
+    maxWidth: '80%',
+  },
+  userMessageBubble: {
+    backgroundColor: '#1E88E5',
+    alignSelf: 'flex-end',
+  },
   aiMessageBubble: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 20,
+    alignSelf: 'flex-start',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {
@@ -490,7 +637,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  aiMessageText: {
+  messageText: {
     fontSize: 16,
     color: '#333',
     lineHeight: 24,
