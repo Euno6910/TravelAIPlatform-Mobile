@@ -75,26 +75,50 @@ const EditProfileScreen = ({ navigation, route }: EditProfileScreenProps) => {
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>이름</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} />
+          <TextInput
+            style={[styles.input, { color: '#222' }]}
+            placeholderTextColor="#222"
+            value={name}
+            onChangeText={setName}
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>이메일</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <TextInput
+            style={[styles.input, { color: '#222' }]}
+            placeholderTextColor="#222"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>생년월일</Text>
-          <TextInput style={styles.input} value={birthdate} onChangeText={setBirthdate} placeholder="YYYY-MM-DD" />
+          <TextInput
+            style={[styles.input, { color: '#222' }]}
+            placeholderTextColor="#222"
+            value={birthdate}
+            onChangeText={setBirthdate}
+            placeholder="YYYY-MM-DD"
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>전화번호</Text>
-          <TextInput style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
+          <TextInput
+            style={[styles.input, { color: '#222' }]}
+            placeholderTextColor="#222"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+          />
         </View>
 
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>저장하기</Text>
+          <Text style={styles.saveButtonText}>저장</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

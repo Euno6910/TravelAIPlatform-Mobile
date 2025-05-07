@@ -21,6 +21,8 @@ type MyPageScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 
 
 const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }) => {
   const [userInfo, setUserInfo] = useState<UserAttributes | null>(null);
+  const [travelPlans, setTravelPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
@@ -52,6 +54,39 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
     } catch (error: any) {
       console.error('사용자 정보 조회 실패:', error);
       Alert.alert('오류', '사용자 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const loadTravelPlans = async () => {
+    try {
+      setLoading(true);
+      const session = await Auth.currentSession();
+      const token = session.getIdToken().getJwtToken();
+
+      const response = await fetch(
+        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/load',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ newest: true }),
+        }
+      );
+
+      const data = await response.json();
+      
+      if (response.ok && data.plan) {
+        navigation.navigate('TravelSchedule', { plans: data.plan });
+      } else {
+        Alert.alert('알림', '여행 계획을 불러오는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('여행 계획 로드 실패:', error);
+      Alert.alert('오류', '여행 계획을 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,7 +133,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
           <NavigationButton
             title="일정 관리"
             icon="📅"
-            onPress={() => navigation.navigate('TravelSchedule')}
+            onPress={loadTravelPlans}
           />
           <NavigationButton
             title="장바구니"

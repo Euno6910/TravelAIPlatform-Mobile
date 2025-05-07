@@ -62,7 +62,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>이메일</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#222' }]}
+              placeholderTextColor="#222"
               placeholder="이메일을 입력하세요"
               value={email}
               onChangeText={setEmail}
@@ -74,7 +75,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>비밀번호</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#222' }]}
+              placeholderTextColor="#222"
               placeholder="비밀번호를 입력하세요"
               value={password}
               onChangeText={setPassword}

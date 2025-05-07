@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 //스택 네비게이션을 사용하여 화면 전환 관리리
 // 화면 컴포넌트 가져오기
@@ -13,6 +13,8 @@ import MyPageScreen from '../screens/MyPageScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import TravelCartScreen from '../screens/TravelCartScreen';
 import TravelScheduleScreen from '../screens/TravelScheduleScreen';
+import MapScreen from '../screens/MapScreen';
+import ManualPlanScreen from '../screens/ManualPlanScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -31,7 +33,7 @@ export type RootStackParamList = {
   PlanCreation: undefined;
   MyPage: undefined;
   TravelCart: undefined;
-  TravelSchedule: undefined;
+  TravelSchedule: { plans: any[] };
   PlanResult: {
     destination: string;
     startDate: string;
@@ -40,9 +42,11 @@ export type RootStackParamList = {
     budget: string;
   };
   EditProfile: { userInfo: UserAttributes };
+  Map: undefined;
+  ManualPlan: undefined;
 };
 
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
   return (
@@ -50,8 +54,7 @@ const AppNavigator: React.FC = () => {
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: '#fff' }
+          headerShown: false
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -63,6 +66,8 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="TravelCart" component={TravelCartScreen} />
         <Stack.Screen name="TravelSchedule" component={TravelScheduleScreen} />
+        <Stack.Screen name="Map" component={MapScreen} />
+        <Stack.Screen name="ManualPlan" component={ManualPlanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

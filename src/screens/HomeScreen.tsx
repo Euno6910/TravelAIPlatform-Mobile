@@ -9,10 +9,15 @@ import {
   ScrollView,
   TextInput,
   Modal,
+  Linking,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { Calendar } from 'react-native-calendars';
 
 //앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -20,19 +25,19 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'H
 const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
-  const [destination, setDestination] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [selectedDates, setSelectedDates] = useState('날짜를 선택하세요');
-  const [guestCount, setGuestCount] = useState('성인 2명 · 아동 0명 · 객실 1개');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
-  const [rooms, setRooms] = useState(1);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{type: 'user' | 'ai', text: string}>>([
-    { type: 'ai', text: '안녕하세요! 저는 당신의 여행 계획을 도와줄 AI 어시스턴트입니다. 어떤 여행을 계획하고 계신가요?' }
+    { type: 'ai', text: '안녕하세요! 저는 당신의 여행 계획을 도와줄 AI 어시스턴트입니다. 여행 날짜와 인원을 선택하고, 어떤 여행을 계획하고 계신지 말씀해주세요.' }
   ]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showGuestPicker, setShowGuestPicker] = useState(false);
+  const [selectedStartDate, setSelectedStartDate] = useState('');
+  const [selectedEndDate, setSelectedEndDate] = useState('');
+  const [isSelectingEndDate, setIsSelectingEndDate] = useState(false);
 
   useEffect(() => {
     checkAuthState();
@@ -59,21 +64,13 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
     }
   };
 
-  const handleSearch = () => {
-    // 검색 로직 구현 예정
-    console.log('Search:', { destination, selectedDates, guestCount });
-  };
-
-  const updateGuestCount = () => {
-    setGuestCount(`성인 ${adults}명 · 아동 ${children}명 · 객실 ${rooms}개`);
-    setShowGuestPicker(false);
-  };
-
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
 
-    // 사용자 메시지를 채팅에 추가
-    setChatMessages(prev => [...prev, { type: 'user', text: userInput }]);
+    // 사용자 메시지와 여행 정보를 함께 전송
+    const messageWithInfo = `[여행 정보]\n날짜: ${selectedDates}\n성인: ${adults}명\n어린이: ${children}명\n\n${userInput}`;
+    
+    setChatMessages(prev => [...prev, { type: 'user', text: messageWithInfo }]);
     setIsTyping(true);
     setUserInput('');
 
@@ -210,296 +207,290 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
     }
   };
 
+  const handleDateSelect = (date: string) => {
+    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+      setSelectedStartDate(date);
+      setSelectedEndDate('');
+      setIsSelectingEndDate(true);
+    } else {
+      if (new Date(date) < new Date(selectedStartDate)) {
+        setSelectedStartDate(date);
+        setSelectedEndDate('');
+      } else {
+        setSelectedEndDate(date);
+        setIsSelectingEndDate(false);
+        setSelectedDates(`${selectedStartDate} ~ ${date}`);
+        setShowDatePicker(false);
+      }
+    }
+  };
+
+  const getMarkedDates = () => {
+    const marked: any = {};
+    if (selectedStartDate) {
+      marked[selectedStartDate] = {
+        selected: true,
+        startingDay: true,
+        color: '#1E88E5',
+      };
+    }
+    if (selectedEndDate) {
+      marked[selectedEndDate] = {
+        selected: true,
+        endingDay: true,
+        color: '#1E88E5',
+      };
+    }
+    return marked;
+  };
+
+  const handleManualPlan = () => {
+    navigation.navigate('ManualPlan');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.logo}>바람길</Text>
-          <View style={styles.headerRight}>
-            {isLoggedIn ? (
-              <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView>
+          <View style={styles.header}>
+            <Text style={styles.logo}>바람길</Text>
+            <View style={styles.headerRight}>
+              {isLoggedIn ? (
+                <>
+                  <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={() => navigation.navigate('MyPage')}
+                  >
+                    <Text style={styles.headerButtonText}>마이페이지</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={handleLogout}
+                  >
+                    <Text style={styles.headerButtonText}>로그아웃</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
                 <TouchableOpacity 
                   style={styles.headerButton}
-                  onPress={() => navigation.navigate('MyPage')}
+                  onPress={() => navigation.navigate('Login')}
                 >
-                  <Text style={styles.headerButtonText}>마이페이지</Text>
+                  <Text style={styles.headerButtonText}>로그인</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.headerButton}
-                  onPress={handleLogout}
-                >
-                  <Text style={styles.headerButtonText}>로그아웃</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={() => navigation.navigate('Login')}
-              >
-                <Text style={styles.headerButtonText}>로그인</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchTitle}>최신 리뷰를 읽고 최저가를 찾으세요</Text>
-          <View style={styles.searchBox}>
-            <View style={styles.searchInputContainer}>
-              <Text style={styles.searchLabel}>어디로 향하시나요?</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="호텔 이름 또는 여행지"
-                value={destination}
-                onChangeText={setDestination}
-              />
+              )}
             </View>
-            
+          </View>
+
+          <View style={styles.travelInfoContainer}>
             <TouchableOpacity 
-              style={styles.searchInputContainer}
+              style={styles.infoButton}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={styles.searchLabel}>체크인 날짜</Text>
-              <Text style={styles.searchInputText}>{selectedDates}</Text>
+              <Text style={styles.infoButtonText}>{selectedDates}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.searchInputContainer}
+              style={styles.infoButton}
               onPress={() => setShowGuestPicker(true)}
             >
-              <Text style={styles.searchLabel}>인원 & 객실</Text>
-              <Text style={styles.searchInputText}>{guestCount}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.searchButton}
-              onPress={handleSearch}
-            >
-              <Text style={styles.searchButtonText}>호텔 검색</Text>
+              <Text style={styles.infoButtonText}>성인 {adults}명 · 어린이 {children}명</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.mainBanner}>
-          <View style={styles.chatContainer}>
-            {chatMessages.map((message, index) => (
-              <View 
-                key={index} 
-                style={[
-                  styles.messageBubble,
-                  message.type === 'user' ? styles.userMessageBubble : styles.aiMessageBubble
-                ]}
-              >
-                <Text style={styles.messageText}>{message.text}</Text>
-              </View>
-            ))}
-            {isTyping && (
-              <View style={styles.typingIndicator}>
-                <Text style={styles.typingText}>AI가 응답을 작성 중입니다...</Text>
-              </View>
-            )}
-            <View style={styles.userInputContainer}>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.userInputField}
-                  placeholder="여행 계획에 대해 자유롭게 입력해주세요..."
-                  placeholderTextColor="#999"
-                  value={userInput}
-                  onChangeText={setUserInput}
-                  multiline
-                />
-                <TouchableOpacity 
-                  style={styles.sendButton}
-                  onPress={handleSendMessage}
+          <ScrollView style={styles.chatScrollView}>
+            <View style={styles.chatContainer}>
+              {chatMessages.map((message, index) => (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.messageBubble,
+                    message.type === 'user' ? styles.userMessageBubble : styles.aiMessageBubble
+                  ]}
                 >
-                  <Text style={styles.sendButtonText}>전송</Text>
-                </TouchableOpacity>
-              </View>
+                  <Text style={[
+                    styles.messageText,
+                    message.type === 'user' ? styles.userMessageText : styles.aiMessageText
+                  ]}>
+                    {message.text}
+                  </Text>
+                </View>
+              ))}
+              {isTyping && (
+                <View style={styles.typingIndicator}>
+                  <Text style={styles.typingText}>AI가 응답을 작성 중입니다...</Text>
+                </View>
+              )}
             </View>
-          </View>
-        </View>
+          </ScrollView>
 
-        <View style={styles.sectionTitle}>
-          <Text style={styles.titleText}>AI 여행의 시작</Text>
-        </View>
-
-        <View style={styles.featureContainer}>
-          <FeatureItem 
-            icon="✍️" 
-            title="테스트를 통해 취향 분석" 
-            description="간단한 테스트로 당신의 여행 취향을 분석합니다." 
-          />
-          <FeatureItem 
-            icon="🤖" 
-            title="AI가 일정을 생성" 
-            description="인공지능이 데이터를 기반으로 최적의 일정을 제안합니다." 
-          />
-          <FeatureItem 
-            icon="🗺️" 
-            title="지도로 보는 여행 계획" 
-            description="생성된 일정을 지도에서 확인하고 수정할 수 있습니다." 
-          />
-        </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.planButton}
-            onPress={() => navigation.navigate('PlanCreation')}
-          >
-            <Text style={styles.planButtonText}>지금 바로 AI와 함께 여행 계획 시작하기</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      <Modal
-        visible={showDatePicker}
-        animationType="slide"
-        transparent={true}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>날짜 선택</Text>
+          <View style={styles.userInputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.userInputField}
+                placeholder="여행 계획에 대해 자유롭게 입력해주세요..."
+                placeholderTextColor="#999"
+                value={userInput}
+                onChangeText={setUserInput}
+                multiline
+              />
               <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowDatePicker(false)}
+                style={styles.sendButton}
+                onPress={handleSendMessage}
               >
-                <Text style={styles.closeButtonText}>×</Text>
+                <Text style={styles.sendButtonText}>전송</Text>
               </TouchableOpacity>
             </View>
+          </View>
 
-            <View style={styles.calendarContainer}>
-              <View style={styles.monthSelector}>
-                <TouchableOpacity>
-                  <Text style={styles.monthArrow}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.monthText}>2024년 4월</Text>
-                <TouchableOpacity>
-                  <Text style={styles.monthArrow}>→</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.sectionTitle}>
+            <Text style={styles.titleText}>AI 여행의 시작</Text>
+          </View>
 
-              <View style={styles.weekDays}>
-                <Text style={styles.weekDay}>일</Text>
-                <Text style={styles.weekDay}>월</Text>
-                <Text style={styles.weekDay}>화</Text>
-                <Text style={styles.weekDay}>수</Text>
-                <Text style={styles.weekDay}>목</Text>
-                <Text style={styles.weekDay}>금</Text>
-                <Text style={styles.weekDay}>토</Text>
-              </View>
+          <View style={styles.featureContainer}>
+            <FeatureItem 
+              icon="🤖" 
+              title="AI가 일정을 생성" 
+              description="인공지능이 데이터를 기반으로 최적의 일정을 제안합니다." 
+            />
+            <FeatureItem 
+              icon="✍️" 
+              title="직접 여행 계획 생성" 
+              description="AI의 도움 없이 나만의 스타일로 여행 계획을 작성해보세요." 
+            />
+            <FeatureItem 
+              icon="📝" 
+              title="여행 계획 저장" 
+              description="생성된 여행 계획을 저장하고 언제든지 확인할 수 있습니다." 
+            />
+          </View>
 
-              <View style={styles.daysContainer}>
-                {/* 날짜 그리드는 실제 구현 시 동적으로 생성 */}
-                {Array.from({ length: 30 }, (_, i) => (
-                  <TouchableOpacity 
-                    key={i + 1}
-                    style={styles.dayButton}
-                  >
-                    <Text style={styles.dayText}>{i + 1}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={styles.applyButton}
-              onPress={() => {
-                setSelectedDates('2024-04-15 ~ 2024-04-20');
-                setShowDatePicker(false);
-              }}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.manualPlanButton}
+              onPress={handleManualPlan}
             >
-              <Text style={styles.applyButtonText}>적용하기</Text>
+              <View style={styles.manualPlanButtonContent}>
+                <Text style={styles.manualPlanButtonIcon}>✈️</Text>
+                <Text style={styles.manualPlanButtonText}>직접 여행 계획 작성하기</Text>
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        </ScrollView>
 
-      <Modal
-        visible={showGuestPicker}
-        animationType="slide"
-        transparent={true}
-      >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { height: 'auto' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>인원 & 객실</Text>
+        <Modal
+          visible={showDatePicker}
+          animationType="slide"
+          transparent={true}
+        >
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalContent, { height: 'auto' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>날짜 선택</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowDatePicker(false);
+                    setSelectedStartDate('');
+                    setSelectedEndDate('');
+                    setIsSelectingEndDate(false);
+                  }}
+                >
+                  <Text style={styles.closeButtonText}>×</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Calendar
+                onDayPress={(day) => handleDateSelect(day.dateString)}
+                markedDates={getMarkedDates()}
+                minDate={new Date().toISOString().split('T')[0]}
+                markingType="period"
+                theme={{
+                  todayTextColor: '#1E88E5',
+                  selectedDayBackgroundColor: '#1E88E5',
+                  selectedDayTextColor: '#fff',
+                  arrowColor: '#1E88E5',
+                }}
+              />
+
+              <View style={styles.dateSelectionInfo}>
+                <Text style={styles.dateSelectionText}>
+                  {isSelectingEndDate ? '체크아웃 날짜를 선택해주세요' : '체크인 날짜를 선택해주세요'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={showGuestPicker}
+          animationType="slide"
+          transparent={true}
+        >
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalContent, { height: 'auto' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>인원 선택</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowGuestPicker(false)}
+                >
+                  <Text style={styles.closeButtonText}>×</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.guestPickerContainer}>
+                <View style={styles.guestPickerRow}>
+                  <Text style={styles.guestPickerLabel}>성인</Text>
+                  <View style={styles.guestPickerControls}>
+                    <TouchableOpacity 
+                      style={[styles.guestPickerButton, adults <= 1 && styles.guestPickerButtonDisabled]}
+                      onPress={() => adults > 1 && setAdults(adults - 1)}
+                    >
+                      <Text style={styles.guestPickerButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.guestPickerCount}>{adults}</Text>
+                    <TouchableOpacity 
+                      style={styles.guestPickerButton}
+                      onPress={() => setAdults(adults + 1)}
+                    >
+                      <Text style={styles.guestPickerButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.guestPickerRow}>
+                  <Text style={styles.guestPickerLabel}>어린이</Text>
+                  <View style={styles.guestPickerControls}>
+                    <TouchableOpacity 
+                      style={[styles.guestPickerButton, children <= 0 && styles.guestPickerButtonDisabled]}
+                      onPress={() => children > 0 && setChildren(children - 1)}
+                    >
+                      <Text style={styles.guestPickerButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.guestPickerCount}>{children}</Text>
+                    <TouchableOpacity 
+                      style={styles.guestPickerButton}
+                      onPress={() => setChildren(children + 1)}
+                    >
+                      <Text style={styles.guestPickerButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
               <TouchableOpacity 
-                style={styles.closeButton}
+                style={styles.applyButton}
                 onPress={() => setShowGuestPicker(false)}
               >
-                <Text style={styles.closeButtonText}>×</Text>
+                <Text style={styles.applyButtonText}>적용하기</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.guestPickerContainer}>
-              <View style={styles.guestPickerRow}>
-                <Text style={styles.guestPickerLabel}>성인</Text>
-                <View style={styles.guestPickerControls}>
-                  <TouchableOpacity 
-                    style={[styles.guestPickerButton, adults <= 1 && styles.guestPickerButtonDisabled]}
-                    onPress={() => adults > 1 && setAdults(adults - 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.guestPickerCount}>{adults}</Text>
-                  <TouchableOpacity 
-                    style={styles.guestPickerButton}
-                    onPress={() => setAdults(adults + 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.guestPickerRow}>
-                <Text style={styles.guestPickerLabel}>아동</Text>
-                <View style={styles.guestPickerControls}>
-                  <TouchableOpacity 
-                    style={[styles.guestPickerButton, children <= 0 && styles.guestPickerButtonDisabled]}
-                    onPress={() => children > 0 && setChildren(children - 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.guestPickerCount}>{children}</Text>
-                  <TouchableOpacity 
-                    style={styles.guestPickerButton}
-                    onPress={() => setChildren(children + 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.guestPickerRow}>
-                <Text style={styles.guestPickerLabel}>객실</Text>
-                <View style={styles.guestPickerControls}>
-                  <TouchableOpacity 
-                    style={[styles.guestPickerButton, rooms <= 1 && styles.guestPickerButtonDisabled]}
-                    onPress={() => rooms > 1 && setRooms(rooms - 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.guestPickerCount}>{rooms}</Text>
-                  <TouchableOpacity 
-                    style={styles.guestPickerButton}
-                    onPress={() => setRooms(rooms + 1)}
-                  >
-                    <Text style={styles.guestPickerButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={styles.applyButton}
-              onPress={updateGuestCount}
-            >
-              <Text style={styles.applyButtonText}>적용하기</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -553,117 +544,85 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  searchContainer: {
-    backgroundColor: '#f8f8f8',
-    padding: 20,
-  },
-  searchTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  searchBox: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  travelInfoContainer: {
+    flexDirection: 'row',
     padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  infoButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
-  searchInputContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 12,
-  },
-  searchLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  searchInput: {
-    fontSize: 16,
+  infoButtonText: {
+    fontSize: 14,
     color: '#333',
+    textAlign: 'center',
   },
-  searchInputText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  searchButton: {
-    backgroundColor: '#1E88E5',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  mainBanner: {
-    backgroundColor: '#1E88E5',
-    padding: 30,
-    alignItems: 'center',
+  chatScrollView: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   chatContainer: {
-    width: '100%',
-    maxWidth: 500,
+    padding: 15,
   },
   messageBubble: {
     padding: 15,
-    borderRadius: 15,
+    borderRadius: 20,
     marginBottom: 10,
     maxWidth: '80%',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   userMessageBubble: {
     backgroundColor: '#1E88E5',
     alignSelf: 'flex-end',
+    borderBottomRightRadius: 5,
   },
   aiMessageBubble: {
     backgroundColor: '#fff',
     alignSelf: 'flex-start',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    borderBottomLeftRadius: 5,
   },
   messageText: {
     fontSize: 16,
-    color: '#333',
     lineHeight: 24,
   },
-  typingIndicator: {
-    marginTop: 10,
-    paddingTop: 10,
+  userMessageText: {
+    color: '#fff',
+  },
+  aiMessageText: {
+    color: '#333',
+  },
+  userInputContainer: {
+    backgroundColor: '#fff',
+    padding: 15,
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
-  typingText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  userInputContainer: {
-    alignItems: 'center',
-    width: '100%',
-  },
   inputWrapper: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
     borderRadius: 25,
     padding: 10,
-    marginBottom: 15,
-    width: '100%',
     alignItems: 'center',
   },
   userInputField: {
@@ -672,6 +631,7 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 16,
     paddingHorizontal: 15,
+    maxHeight: 100,
   },
   sendButton: {
     backgroundColor: '#1E88E5',
@@ -733,17 +693,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
   },
-  planButton: {
-    backgroundColor: '#1E88E5',
-    padding: 15,
-    borderRadius: 25,
-    alignItems: 'center',
-  },
-  planButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -774,62 +723,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#666',
   },
-  calendarContainer: {
-    flex: 1,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  monthArrow: {
-    fontSize: 24,
-    color: '#1E88E5',
-    padding: 10,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  weekDays: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 10,
-  },
-  weekDay: {
-    width: 40,
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#666',
-  },
-  daysContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-  },
-  dayButton: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  applyButton: {
-    backgroundColor: '#1E88E5',
+  dateSelectionInfo: {
     padding: 15,
-    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
   },
-  applyButtonText: {
-    color: '#fff',
+  dateSelectionText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: '#666',
   },
   guestPickerContainer: {
     paddingVertical: 10,
@@ -872,6 +772,59 @@ const styles = StyleSheet.create({
     color: '#333',
     minWidth: 30,
     textAlign: 'center',
+  },
+  applyButton: {
+    backgroundColor: '#1E88E5',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  typingIndicator: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  typingText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  manualPlanButton: {
+    backgroundColor: '#1E88E5',
+    padding: 16,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  manualPlanButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  manualPlanButtonIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  manualPlanButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
