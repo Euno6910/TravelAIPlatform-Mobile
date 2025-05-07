@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Dimensions, Text } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-//맵띄우기기
+
 const MapScreen = () => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 

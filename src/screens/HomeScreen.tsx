@@ -248,6 +248,11 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
     navigation.navigate('ManualPlan');
   };
 
+  // 구글맵 메인 화면으로 오픈하는 함수
+  const openGoogleMapsMain = () => {
+    Linking.openURL('https://www.google.com/maps');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -369,10 +374,16 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
 
           <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.startButton}
+              style={styles.planButton}
               onPress={handleManualPlan}
             >
-              <Text style={styles.startButtonText}>직접 여행 계획 작성하기</Text>
+              <Text style={styles.planButtonText}>✍️ 직접 여행 계획 작성하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={openGoogleMapsMain}
+            >
+              <Text style={styles.mapButtonText}>🗺️ 지도</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -795,6 +806,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
+  },
+  planButton: {
+    backgroundColor: '#1E88E5',
+    padding: 18,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 14,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  planButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  mapButton: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#1E88E5',
+    borderRadius: 25,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  mapButtonText: {
+    color: '#1E88E5',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
