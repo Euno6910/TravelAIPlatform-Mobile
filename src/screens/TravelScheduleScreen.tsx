@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -15,6 +16,17 @@ import { RouteProp } from '@react-navigation/native';
 type TravelScheduleScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'TravelSchedule'>;
   route: RouteProp<RootStackParamList, 'TravelSchedule'>;
+};
+
+// 구글맵 검색 함수
+const openGoogleMaps = (lat?: number, lng?: number, location?: string) => {
+  let url = '';
+  if (lat && lng) {
+    url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  } else if (location) {
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+  }
+  if (url) Linking.openURL(url);
 };
 
 const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation, route }) => {
@@ -126,14 +138,18 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                     {expandedDayIdxMap[plan.planId] === idx && (
                       <View style={{ marginTop: 10 }}>
                         {day.activities?.map((activity: any, aIdx: number) => (
-                          <View key={aIdx} style={styles.activityBlock}>
+                          <TouchableOpacity
+                            key={aIdx}
+                            style={styles.activityBlock}
+                            onPress={() => openGoogleMaps(activity.latitude, activity.longitude, activity.location)}
+                          >
                             <Text style={styles.activityText}>
                               {activity.time} - {activity.title}
                             </Text>
                             {activity.description && (
                               <Text style={styles.activityDesc}>{activity.description}</Text>
                             )}
-                          </View>
+                          </TouchableOpacity>
                         ))}
                       </View>
                     )}

@@ -369,13 +369,10 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
 
           <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.manualPlanButton}
+              style={styles.startButton}
               onPress={handleManualPlan}
             >
-              <View style={styles.manualPlanButtonContent}>
-                <Text style={styles.manualPlanButtonIcon}>✈️</Text>
-                <Text style={styles.manualPlanButtonText}>직접 여행 계획 작성하기</Text>
-              </View>
+              <Text style={styles.startButtonText}>직접 여행 계획 작성하기</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -798,33 +795,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
-  },
-  manualPlanButton: {
-    backgroundColor: '#1E88E5',
-    padding: 16,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  manualPlanButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  manualPlanButtonIcon: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  manualPlanButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 
