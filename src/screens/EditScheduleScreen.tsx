@@ -1,14 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TextInput, Button, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
-//여행 계획 생성 화면 - 여행 계획 생성 단계별 입력, 계획 생성 결과 화면으로 이동  
-const PlanCreationScreen = () => {
+const EditScheduleScreen = () => {
   const navigation = useNavigation();
-  const [title, setTitle] = useState('');
-  const [days, setDays] = useState<any[]>([{ date: '', title: '', schedules: [] }]);
+  const route = useRoute();
+  // plan 정보는 route.params.plan으로 전달된다고 가정
+  const plan = (route.params as any)?.plan;
+
+  // travelInfo 구조 파싱 (TravelScheduleScreen.tsx와 동일하게)
+  let travelInfo: any = {};
+  try {
+    const text = plan?.plan_data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonStr = match ? match[1] : text;
+    travelInfo = JSON.parse(jsonStr);
+  } catch (e: any) {
+    travelInfo = {};
+  }
+
+  // 상태: 제목, days
+  const [title, setTitle] = useState(travelInfo.title || '');
+  const [days, setDays] = useState<any[]>(travelInfo.days || []);
 
   // 날짜(day) 관련 함수
   const updateDay = (dayIdx: number, newDay: any) => {
@@ -45,17 +60,14 @@ const PlanCreationScreen = () => {
   // 저장 핸들러
   const handleSave = async () => {
     try {
-      if (!title.trim()) {
-        Alert.alert('오류', '제목을 입력해주세요.');
-        return;
-      }
-
+      const planId = plan.planId || plan.id;
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          plan_id: planId,
           title: title,
           data: days
         })
@@ -75,14 +87,13 @@ const PlanCreationScreen = () => {
 
   return (
     <ScrollView style={{ flex: 1, padding: 20, backgroundColor: '#F8F9FF' }} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#4A6572' }}>새 여행 일정 만들기</Text>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#4A6572' }}>여행 일정 수정</Text>
       <Text style={{ color: '#4A6572' }}>제목</Text>
       <TextInput
         value={title}
         onChangeText={setTitle}
         style={{ borderWidth: 1, borderColor: '#E0E7FF', borderRadius: 8, padding: 8, marginBottom: 20, color: '#4A6572', backgroundColor: 'white' }}
         placeholderTextColor={'#A5B4CB'}
-        placeholder="여행 제목을 입력하세요"
       />
       {days.map((day, dayIdx) => (
         <View key={dayIdx} style={{ marginBottom: 20, padding: 12, backgroundColor: '#F0F4FF', borderRadius: 10 }}>
@@ -157,4 +168,4 @@ const PlanCreationScreen = () => {
   );
 };
 
-export default PlanCreationScreen; 
+export default EditScheduleScreen; 

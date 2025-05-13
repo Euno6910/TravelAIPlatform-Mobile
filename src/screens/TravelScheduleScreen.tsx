@@ -155,10 +155,7 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                 <View style={styles.actionButtons}>
                   <TouchableOpacity 
                     style={[styles.actionButton, styles.editButton]}
-                    onPress={() => {
-                      // 일정 수정 구현 예정
-                      console.log('Edit schedule:', travelInfo);
-                    }}
+                    onPress={() => navigation.navigate('EditSchedule', { plan })}
                   >
                     <Text style={[styles.actionButtonText, styles.editButtonText]}>수정</Text>
                   </TouchableOpacity>
