@@ -95,7 +95,7 @@ const FlightSearchScreen = () => {
         returnDate: returnDate || undefined,
         adults: parseInt(adults, 10),
         currencyCode: 'KRW',
-        max: 5,
+        max: 10,
         travelClass,
         nonStop,
       };
@@ -368,10 +368,12 @@ const styles = StyleSheet.create({
   picker: {
     width: '100%',
     height: 48,
+    color: '#222',
   },
   pickerItem: {
     fontSize: 16,
     height: 48,
+    color: '#222',
   },
   searchButton: {
     backgroundColor: '#1E88E5',

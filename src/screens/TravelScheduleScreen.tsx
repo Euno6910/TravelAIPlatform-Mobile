@@ -72,39 +72,36 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
           <Text style={{ textAlign: 'center', color: '#999', marginTop: 40 }}>저장된 여행 일정이 없습니다.</Text>
         ) : (
           plans.map((plan: any) => {
-            // plan_data가 문자열이면 파싱
+            // plan_data가 Gemini 응답 객체로 온다고 가정
             let planData = plan.plan_data;
-            if (typeof planData === 'string') {
-              try {
-                planData = JSON.parse(planData);
-              } catch (e) {
-                planData = {};
-              }
-            }
 
-            // 2차 파싱: 실제 여행 정보 추출
+            // Gemini 응답에서 여행 정보 추출
             let travelInfo: any = {};
             try {
-              let text = planData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-              text = text.replace(/\n/g, '\n').replace(/\n/g, '\n');
-              const match = text.match(/```json\\n([\s\S]*?)\\n```/) || text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```json\n([\s\S]*?)\n```/);
+              // 1. text 추출
+              const text = planData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              // 2. 코드블록에서 JSON만 추출
+              const match = text.match(/```json\s*([\s\S]*?)\s*```/);
               const jsonStr = match ? match[1] : text;
+              // 3. JSON 파싱
               travelInfo = JSON.parse(jsonStr);
             } catch (e) {
               travelInfo = {};
             }
 
             const title = travelInfo.title || '-';
-            const destination = travelInfo.destination || '-';
-            const startDate = travelInfo.itinerary?.[0]?.date || '';
-            const endDate = travelInfo.itinerary?.[travelInfo.itinerary?.length - 1]?.date || '';
+            const destination = travelInfo.destination || '-'; // destination 필드가 없을 수 있음
+            // days 배열에서 시작일, 종료일 추출
+            const startDate = travelInfo.days?.[0]?.date || '';
+            const endDate = travelInfo.days?.[travelInfo.days?.length - 1]?.date || '';
             const status = getStatus(startDate, endDate);
 
             return (
               <View key={plan.planId || plan.id} style={styles.scheduleCard}>
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.destination}>{title}</Text>
-                  <Text style={styles.date}>{destination}</Text>
+                  {/* 목적지(destination) 필드가 없을 수 있으니 조건부 렌더링 */}
+                  {destination !== '-' && <Text style={styles.date}>{destination}</Text>}
                   <Text style={styles.date}>{startDate} ~ {endDate}</Text>
                   <View style={[
                     styles.statusBadge,
@@ -116,8 +113,8 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                     ]}>{status}</Text>
                   </View>
                 </View>
-                {/* 날짜별 큰 블럭 */}
-                {travelInfo.itinerary?.map((day: any, idx: number) => (
+                {/* 날짜별 큰 블럭: days -> schedules */}
+                {travelInfo.days?.map((day: any, idx: number) => (
                   <View key={idx} style={styles.dayBlock}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f0f6ff', borderRadius: 10, padding: 12, marginBottom: 4 }}>
                       <View>
@@ -134,20 +131,20 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                         <Text style={styles.expandButtonText}>{expandedDayIdxMap[plan.planId] === idx ? '닫기' : '확대'}</Text>
                       </TouchableOpacity>
                     </View>
-                    {/* 아코디언 상세 일정 */}
+                    {/* 아코디언 상세 일정: schedules */}
                     {expandedDayIdxMap[plan.planId] === idx && (
                       <View style={{ marginTop: 10 }}>
-                        {day.activities?.map((activity: any, aIdx: number) => (
+                        {day.schedules?.map((schedule: any, aIdx: number) => (
                           <TouchableOpacity
                             key={aIdx}
                             style={styles.activityBlock}
-                            onPress={() => openGoogleMaps(activity.latitude, activity.longitude, activity.location)}
+                            onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address)}
                           >
                             <Text style={styles.activityText}>
-                              {activity.time} - {activity.title}
+                              {schedule.time} - {schedule.name}
                             </Text>
-                            {activity.description && (
-                              <Text style={styles.activityDesc}>{activity.description}</Text>
+                            {schedule.notes && (
+                              <Text style={styles.activityDesc}>{schedule.notes}</Text>
                             )}
                           </TouchableOpacity>
                         ))}
