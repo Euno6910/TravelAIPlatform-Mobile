@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { useFlight } from '../contexts/FlightContext';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
 //여행 계획 생성 화면 - 여행 계획 생성 단계별 입력, 계획 생성 결과 화면으로 이동  
 const PlanCreationScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { selectedFlight, setSelectedFlight } = useFlight();
+  const [flight, setFlight] = useState<any>(null);
   const [title, setTitle] = useState('');
   const [days, setDays] = useState<any[]>([{ date: '', title: '', schedules: [] }]);
+
+  // selectedFlight가 변경될 때마다 flight 상태 업데이트
+  useEffect(() => {
+    if (selectedFlight) {
+      setFlight(selectedFlight);
+    }
+  }, [selectedFlight]);
 
   // 날짜(day) 관련 함수
   const updateDay = (dayIdx: number, newDay: any) => {
@@ -57,7 +69,8 @@ const PlanCreationScreen = () => {
         },
         body: JSON.stringify({
           title: title,
-          data: days
+          data: days,
+          flight_info: flight // 항공편 정보도 함께 저장
         })
       });
       const result = await response.json();
@@ -75,6 +88,70 @@ const PlanCreationScreen = () => {
 
   return (
     <ScrollView style={{ flex: 1, padding: 20, backgroundColor: '#F8F9FF' }} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* 항공편 정보 카드 */}
+      <View style={{
+        backgroundColor: '#f0f8ff',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 18,
+      }}>
+        {flight && flight.itineraries ? (
+          <>
+            {/* 출국편 */}
+            <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
+              ✈️ {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
+              {" → "}
+              {flight.itineraries[0]?.segments[0]?.arrival?.iataCode}
+              {"  "}
+              {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
+              {" "}
+              {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
+            </Text>
+            {/* 귀국편(왕복일 때) */}
+            {flight.itineraries[1] && (
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
+                ✈️ {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
+                {" → "}
+                {flight.itineraries[1]?.segments[0]?.arrival?.iataCode}
+                {"  "}
+                {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
+                {" "}
+                {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
+              </Text>
+            )}
+            {/* 총 요금 */}
+            {flight.price?.grandTotal && (
+              <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
+                총 요금: {Number(flight.price.grandTotal).toLocaleString()}원
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+            등록된 항공편 정보가 없습니다
+          </Text>
+        )}
+        {/* 항공편 수정 버튼 */}
+        <TouchableOpacity 
+          style={{
+            backgroundColor: '#1E88E5',
+            padding: 8,
+            borderRadius: 6,
+            marginTop: 10,
+            alignItems: 'center'
+          }}
+          onPress={() => {
+            // 현재 선택된 항공편 정보를 초기화하고 FlightSearchScreen으로 이동
+            setSelectedFlight(null);
+            navigation.navigate('FlightSearch');
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+            {flight && flight.itineraries ? '항공편 수정' : '항공편 등록'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#4A6572' }}>새 여행 일정 만들기</Text>
       <Text style={{ color: '#4A6572' }}>제목</Text>
       <TextInput
