@@ -35,7 +35,7 @@ export type RootStackParamList = {
   PlanCreation: undefined;
   MyPage: undefined;
   TravelCart: undefined;
-  TravelSchedule: { plans: any[] };
+  TravelSchedule: { plans: any[]; flightInfo?: any };
   PlanResult: {
     destination: string;
     startDate: string;

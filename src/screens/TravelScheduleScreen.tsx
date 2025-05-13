@@ -32,6 +32,7 @@ const openGoogleMaps = (lat?: number, lng?: number, location?: string) => {
 const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation, route }) => {
   // 실제 데이터 사용
   const plans = route.params?.plans || [];
+  const flight = plans[0]?.flight_info;
 
   const getStatus = (start: string, end: string) => {
     const today = new Date();
@@ -95,9 +96,46 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
             const startDate = travelInfo.days?.[0]?.date || '';
             const endDate = travelInfo.days?.[travelInfo.days?.length - 1]?.date || '';
             const status = getStatus(startDate, endDate);
+            // 다양한 위치에서 항공편 정보 탐색
+            let flightSummary = null;
+            if (flight && flight.itineraries) {
+              flightSummary = (
+                <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                  {/* 출국편 */}
+                  <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
+                    ✈️ {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
+                    {" → "}
+                    {flight.itineraries[0]?.segments[0]?.arrival?.iataCode}
+                    {"  "}
+                    {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
+                    {" "}
+                    {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
+                  </Text>
+                  {/* 귀국편(왕복일 때) */}
+                  {flight.itineraries[1] && (
+                    <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
+                      ✈️ {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
+                      {" → "}
+                      {flight.itineraries[1]?.segments[0]?.arrival?.iataCode}
+                      {"  "}
+                      {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
+                      {" "}
+                      {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
+                    </Text>
+                  )}
+                  {/* 총 요금 */}
+                  {flight.price?.grandTotal && (
+                    <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
+                      총 요금: {Number(flight.price.grandTotal).toLocaleString()}원
+                    </Text>
+                  )}
+                </View>
+              );
+            }
 
             return (
               <View key={plan.planId || plan.id} style={styles.scheduleCard}>
+                {flightSummary}
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.destination}>{title}</Text>
                   {/* 목적지(destination) 필드가 없을 수 있으니 조건부 렌더링 */}
@@ -116,13 +154,13 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                 {/* 날짜별 큰 블럭: days -> schedules */}
                 {travelInfo.days?.map((day: any, idx: number) => (
                   <View key={idx} style={styles.dayBlock}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f0f6ff', borderRadius: 10, padding: 12, marginBottom: 4 }}>
-                      <View>
+                    <View style={{ position: 'relative', backgroundColor: '#f0f6ff', borderRadius: 10, padding: 12, marginBottom: 4 }}>
+                      <View style={{ paddingRight: 90 }}>
                         <Text style={styles.dayTitle}>{day.date}</Text>
                         <Text style={styles.daySubTitle}>{day.title}</Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.expandButton}
+                        style={[styles.expandButton, { position: 'absolute', top: 12, right: 12 }]}
                         onPress={() => setExpandedDayIdxMap(prev => ({
                           ...prev,
                           [plan.planId]: prev[plan.planId] === idx ? null : idx
