@@ -18,6 +18,7 @@ import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Calendar } from 'react-native-calendars';
+import { useFlight } from '../contexts/FlightContext';
 
 //앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -38,6 +39,7 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
   const [selectedStartDate, setSelectedStartDate] = useState('');
   const [selectedEndDate, setSelectedEndDate] = useState('');
   const [isSelectingEndDate, setIsSelectingEndDate] = useState(false);
+  const { selectedFlight } = useFlight();
 
   useEffect(() => {
     checkAuthState();
@@ -105,11 +107,12 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
       // API 요청 데이터 준비
       const requestData = {
         query: userInput,
-        startDate: selectedDates.split(' ~ ')[0] || '2024-05-01',
-        endDate: selectedDates.split(' ~ ')[1] || '2024-05-03',
+        startDate: selectedDates.split(' ~ ')[0] || '',
+        endDate: selectedDates.split(' ~ ')[1] || '',
         adults: adults,
         children: children,
-        email: userEmail  // 이메일 정보 추가
+        email: userEmail,
+        flightInfo: selectedFlight
       };
 
       console.log('API 요청 데이터:', requestData);
@@ -136,50 +139,32 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('JSON 파싱 에러:', parseError);
-        // Gemini 응답에서 JSON 문자열 추출 시도
-        const match = responseText.match(/```json\n([\s\S]*?)\n```/);
-        if (match && match[1]) {
-          try {
-            data = JSON.parse(match[1]);
-          } catch (secondParseError) {
-            console.error('두 번째 JSON 파싱 시도 실패:', secondParseError);
-            throw new Error('서버 응답을 처리할 수 없습니다.');
-          }
-        } else {
-          throw new Error('서버 응답을 처리할 수 없습니다.');
-        }
+        throw new Error('서버 응답을 처리할 수 없습니다.');
       }
 
       if (data.plan?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const geminiResponse = data.plan.candidates[0].content.parts[0].text;
         try {
-          // JSON 문자열 추출 시도
+          // 코드블록이 있으면 그 안의 JSON만 추출
+          let jsonStr = geminiResponse;
           const match = geminiResponse.match(/```json\n([\s\S]*?)\n```/);
-          const jsonStr = match ? match[1] : geminiResponse;
-          
+          if (match && match[1]) {
+            jsonStr = match[1];
+          }
           const planData = JSON.parse(jsonStr);
           let formattedResponse = `🎯 ${planData.title}\n\n`;
-          formattedResponse += `📍 목적지: ${planData.destination}\n`;
-          formattedResponse += `📅 기간: ${planData.duration}\n\n`;
           
           // 일정 정보 추가
-          planData.itinerary?.forEach((day: any) => {
+          planData.days?.forEach((day: any) => {
             formattedResponse += `Day ${day.day} (${day.date})\n`;
             formattedResponse += `${day.title}\n`;
-            day.activities?.forEach((activity: any) => {
-              formattedResponse += `• ${activity.time} - ${activity.title}\n`;
-              if (activity.description) formattedResponse += `  ${activity.description}\n`;
+            day.schedules?.forEach((schedule: any) => {
+              formattedResponse += `• ${schedule.time} - ${schedule.name}\n`;
+              if (schedule.notes) formattedResponse += `  ${schedule.notes}\n`;
+              if (schedule.address) formattedResponse += `  📍 ${schedule.address}\n`;
             });
             formattedResponse += '\n';
           });
-
-          // 팁 추가
-          if (planData.tips?.length > 0) {
-            formattedResponse += '\n💡 여행 팁:\n';
-            planData.tips.forEach((tip: string) => {
-              formattedResponse += `• ${tip}\n`;
-            });
-          }
 
           setChatMessages(prev => [...prev, { 
             type: 'ai', 
@@ -187,7 +172,6 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
           }]);
         } catch (parseError) {
           console.error('여행 계획 JSON 파싱 에러:', parseError);
-          // JSON 파싱 실패시 원본 텍스트 표시
           setChatMessages(prev => [...prev, { 
             type: 'ai', 
             text: geminiResponse.replace(/```json\n|\n```/g, '')
@@ -303,6 +287,40 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
             >
               <Text style={styles.infoButtonText}>성인 {adults}명 · 어린이 {children}명</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* 항공권 선택 버튼 및 요약 */}
+          <View style={{ paddingHorizontal: 15, marginBottom: 10 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 8,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: '#1E88E5',
+                alignItems: 'center',
+                marginBottom: selectedFlight ? 8 : 0
+              }}
+              onPress={() => navigation.navigate('FlightSearch')}
+            >
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16 }}>
+                {selectedFlight ? '항공권 다시 선택하기' : '항공권 선택하기'}
+              </Text>
+            </TouchableOpacity>
+            {selectedFlight && (
+              <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 10, marginTop: 4 }}>
+                <Text style={{ color: '#333', fontSize: 14 }}>
+                  ✈️ {selectedFlight.itineraries ?
+                    `${selectedFlight.itineraries[0].segments[0].departure.iataCode} → ${selectedFlight.itineraries[0].segments[selectedFlight.itineraries[0].segments.length-1].arrival.iataCode}` :
+                    '항공권 정보 요약'}
+                </Text>
+                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
+                  {selectedFlight.itineraries ?
+                    `${selectedFlight.itineraries[0].segments[0].departure.at.split('T')[0]} 출발` :
+                    ''}
+                </Text>
+              </View>
+            )}
           </View>
 
           <ScrollView style={styles.chatScrollView}>

@@ -11,13 +11,16 @@ import React from 'react';
 import { StatusBar, SafeAreaView } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
+import { FlightProvider } from './src/contexts/FlightContext';
 
 function App(): React.JSX.Element {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <AppNavigator />
-    </GestureHandlerRootView>
+    <FlightProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <AppNavigator />
+      </GestureHandlerRootView>
+    </FlightProvider>
   );
 }
 

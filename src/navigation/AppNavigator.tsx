@@ -15,6 +15,7 @@ import TravelCartScreen from '../screens/TravelCartScreen';
 import TravelScheduleScreen from '../screens/TravelScheduleScreen';
 import MapScreen from '../screens/MapScreen';
 import ManualPlanScreen from '../screens/ManualPlanScreen';
+import FlightSearchScreen from '../screens/FlightSearchScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -44,6 +45,7 @@ export type RootStackParamList = {
   EditProfile: { userInfo: UserAttributes };
   Map: undefined;
   ManualPlan: undefined;
+  FlightSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -68,6 +70,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="TravelSchedule" component={TravelScheduleScreen} />
         <Stack.Screen name="Map" component={MapScreen} />
         <Stack.Screen name="ManualPlan" component={ManualPlanScreen} />
+        <Stack.Screen name="FlightSearch" component={FlightSearchScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
