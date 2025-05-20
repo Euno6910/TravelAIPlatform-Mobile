@@ -138,123 +138,144 @@ const FlightSearchScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>항공권 검색</Text>
-      <View style={styles.formRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.fieldLabel}>출발지(검색)</Text>
-          <TextInput
-            style={styles.input}
-            value={originQuery || origin}
-            onChangeText={handleOriginChange}
-            placeholder="출발지(도시/공항명/IATA)"
-            placeholderTextColor="#222"
-            autoCorrect={false}
-            autoCapitalize="characters"
-          />
-          {originLoading ? (
-            <ActivityIndicator size="small" color="#1E88E5" style={{ marginTop: 4 }} />
-          ) : originSuggestions.length > 0 ? (
-            <View style={styles.suggestionBox}>
-              <FlatList
-                data={originSuggestions}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => handleOriginSelect(item)} style={styles.suggestionItem}>
-                    <Text style={styles.suggestionText}>{item.iataCode} - {item.name} ({item.address?.cityName || ''})</Text>
-                  </TouchableOpacity>
-                )}
-                keyboardShouldPersistTaps="handled"
-              />
+      <View style={styles.searchContainer}>
+        <View style={styles.formRow}>
+          <View style={styles.searchColumn}>
+            <Text style={styles.fieldLabel}>출발지</Text>
+            <TextInput
+              style={styles.input}
+              value={originQuery || origin}
+              onChangeText={handleOriginChange}
+              placeholder="도시/공항명/IATA"
+              placeholderTextColor="#666"
+              autoCorrect={false}
+              autoCapitalize="characters"
+            />
+            {originLoading ? (
+              <ActivityIndicator size="small" color="#1E88E5" style={{ marginTop: 4 }} />
+            ) : originSuggestions.length > 0 ? (
+              <View style={styles.suggestionBox}>
+                <FlatList
+                  data={originSuggestions}
+                  keyExtractor={item => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => handleOriginSelect(item)} style={styles.suggestionItem}>
+                      <Text style={styles.suggestionText}>{item.iataCode} - {item.name}</Text>
+                    </TouchableOpacity>
+                  )}
+                  keyboardShouldPersistTaps="handled"
+                />
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.searchColumn}>
+            <Text style={styles.fieldLabel}>도착지</Text>
+            <TextInput
+              style={styles.input}
+              value={destinationQuery || destination}
+              onChangeText={handleDestinationChange}
+              placeholder="도시/공항명/IATA"
+              placeholderTextColor="#666"
+              autoCorrect={false}
+              autoCapitalize="characters"
+            />
+            {destinationLoading ? (
+              <ActivityIndicator size="small" color="#1E88E5" style={{ marginTop: 4 }} />
+            ) : destinationSuggestions.length > 0 ? (
+              <View style={styles.suggestionBox}>
+                <FlatList
+                  data={destinationSuggestions}
+                  keyExtractor={item => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => handleDestinationSelect(item)} style={styles.suggestionItem}>
+                      <Text style={styles.suggestionText}>{item.iataCode} - {item.name}</Text>
+                    </TouchableOpacity>
+                  )}
+                  keyboardShouldPersistTaps="handled"
+                />
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={styles.dateColumn}>
+            <Text style={styles.fieldLabel}>출국일</Text>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowCalendar('departure')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.dateText}>
+                {departureDate || '선택'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.dateColumn}>
+            <Text style={styles.fieldLabel}>귀국일(선택사항)</Text>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowCalendar('return')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.dateText}>
+                {returnDate || '선택'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.guestColumn}>
+            <Text style={styles.fieldLabel}>인원</Text>
+            <TextInput 
+              style={styles.input} 
+              value={adults} 
+              onChangeText={setAdults} 
+              placeholder="인원" 
+              placeholderTextColor="#666" 
+              keyboardType="numeric" 
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={styles.classColumn}>
+            <Text style={styles.fieldLabel}>좌석 등급</Text>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={travelClass}
+                onValueChange={setTravelClass}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+                mode={Platform.OS === 'ios' ? 'dialog' : 'dropdown'}
+              >
+                <Picker.Item label="이코노미" value="ECONOMY" />
+                <Picker.Item label="프리미엄 이코노미" value="PREMIUM_ECONOMY" />
+                <Picker.Item label="비즈니스" value="BUSINESS" />
+                <Picker.Item label="퍼스트" value="FIRST" />
+              </Picker>
             </View>
-          ) : null}
+          </View>
+          <View style={styles.nonstopColumn}>
+            <Text style={styles.fieldLabel}>직항만</Text>
+            <Switch 
+              value={nonStop} 
+              onValueChange={setNonStop} 
+              thumbColor={nonStop ? '#1E88E5' : '#ccc'} 
+              trackColor={{ true: '#90caf9', false: '#ccc' }} 
+            />
+          </View>
         </View>
-        <Text style={{ marginHorizontal: 8 }}></Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.fieldLabel}>도착지(검색)</Text>
-          <TextInput
-            style={styles.input}
-            value={destinationQuery || destination}
-            onChangeText={handleDestinationChange}
-            placeholder="도착지(도시/공항명/IATA)"
-            placeholderTextColor="#222"
-            autoCorrect={false}
-            autoCapitalize="characters"
-          />
-          {destinationLoading ? (
-            <ActivityIndicator size="small" color="#1E88E5" style={{ marginTop: 4 }} />
-          ) : destinationSuggestions.length > 0 ? (
-            <View style={styles.suggestionBox}>
-              <FlatList
-                data={destinationSuggestions}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => handleDestinationSelect(item)} style={styles.suggestionItem}>
-                    <Text style={styles.suggestionText}>{item.iataCode} - {item.name} ({item.address?.cityName || ''})</Text>
-                  </TouchableOpacity>
-                )}
-                keyboardShouldPersistTaps="handled"
-              />
-            </View>
-          ) : null}
-        </View>
+
+        <TouchableOpacity 
+          style={styles.searchButton} 
+          onPress={handleSearch} 
+          disabled={loading}
+        >
+          <Text style={styles.searchButtonText}>
+            {loading ? '검색 중...' : '항공권 검색'}
+          </Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.formRow}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.fieldLabel}>출국일</Text>
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => setShowCalendar('departure')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.dateText} numberOfLines={1} ellipsizeMode="tail">
-              {departureDate || '출국일 선택'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.fieldLabel}>귀국일(선택)</Text>
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => setShowCalendar('return')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.dateText} numberOfLines={1} ellipsizeMode="tail">
-              {returnDate || '귀국일(선택)'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View style={styles.formRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.fieldLabel}>인원 수</Text>
-          <TextInput style={styles.input} value={adults} onChangeText={setAdults} placeholder="인원 수" placeholderTextColor="#222" keyboardType="numeric" />
-        </View>
-      </View>
-      {/* 항공권 등급 선택 */}
-      <View style={styles.formRow}>
-        <Text style={styles.label}>좌석 등급</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={travelClass}
-            onValueChange={setTravelClass}
-            style={styles.picker}
-            itemStyle={styles.pickerItem}
-            mode={Platform.OS === 'ios' ? 'dialog' : 'dropdown'}
-          >
-            <Picker.Item label="이코노미" value="ECONOMY" />
-            <Picker.Item label="프리미엄 이코노미" value="PREMIUM_ECONOMY" />
-            <Picker.Item label="비즈니스" value="BUSINESS" />
-            <Picker.Item label="퍼스트" value="FIRST" />
-          </Picker>
-        </View>
-      </View>
-      {/* 직항만 검색 */}
-      <View style={styles.formRow}>
-        <Text style={styles.label}>직항만</Text>
-        <Switch value={nonStop} onValueChange={setNonStop} thumbColor={nonStop ? '#1E88E5' : '#ccc'} trackColor={{ true: '#90caf9', false: '#ccc' }} />
-      </View>
-      <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
-        <Text style={styles.searchButtonText}>{loading ? '검색 중...' : '항공권 검색'}</Text>
-      </TouchableOpacity>
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       <FlatList
         data={results}
@@ -322,69 +343,94 @@ const FlightSearchScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#fff',
-    overflow: 'visible',
+  },
+  searchContainer: {
+    padding: 12,
   },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1E88E5',
-    marginBottom: 18,
+    marginBottom: 12,
     textAlign: 'center',
   },
   formRow: {
     flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchColumn: {
+    flex: 1,
+  },
+  dateColumn: {
+    flex: 1,
+  },
+  guestColumn: {
+    width: 80,
+  },
+  classColumn: {
+    flex: 1,
+  },
+  nonstopColumn: {
+    width: 100,
     alignItems: 'center',
-    marginBottom: 36,
-    overflow: 'visible',
+    justifyContent: 'center',
+  },
+  fieldLabel: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 4,
   },
   input: {
-    flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 17,
-    backgroundColor: '#f9f9f9',
-    minHeight: 48,
-    color: '#222',
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    padding: 8,
+    backgroundColor: '#fff',
+    height: 36,
+    fontSize: 14,
+    color: '#000',
   },
-  label: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: 'bold',
-    marginRight: 10,
+  dateInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    height: 36,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#000',
   },
   pickerWrapper: {
-    flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    minHeight: 48,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    height: 36,
     justifyContent: 'center',
   },
   picker: {
-    width: '100%',
-    height: 48,
-    color: '#222',
+    height: 36,
+    color: '#000',
   },
   pickerItem: {
-    fontSize: 16,
-    height: 48,
-    color: '#222',
+    fontSize: 14,
+    color: '#000',
   },
   searchButton: {
     backgroundColor: '#1E88E5',
-    padding: 14,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 6,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   searchButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   errorText: {
@@ -410,27 +456,27 @@ const styles = StyleSheet.create({
   },
   suggestionBox: {
     position: 'absolute',
-    top: 58,
+    top: 40,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#1E88E5',
-    borderRadius: 8,
+    borderRadius: 6,
     zIndex: 9999,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   suggestionItem: {
-    padding: 12,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   suggestionText: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#333',
   },
   modalContainer: {
@@ -470,27 +516,6 @@ const styles = StyleSheet.create({
   dateSelectionText: {
     fontSize: 16,
     color: '#666',
-  },
-  fieldLabel: {
-    fontSize: 16,
-    color: '#222',
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    minHeight: 48,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  dateText: {
-    fontSize: 17,
-    color: '#222',
-    width: '100%',
   },
 });
 

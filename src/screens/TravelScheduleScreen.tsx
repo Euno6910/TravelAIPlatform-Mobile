@@ -20,12 +20,14 @@ type TravelScheduleScreenProps = {
 };
 
 // 구글맵 검색 함수
-const openGoogleMaps = (lat?: number, lng?: number, location?: string) => {
+const openGoogleMaps = (lat?: number, lng?: number, location?: string, name?: string) => {
   let url = '';
   if (lat && lng) {
-    url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    const searchQuery = name ? `${name} ${lat},${lng}` : `${lat},${lng}`;
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
   } else if (location) {
-    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+    const searchQuery = name ? `${name} ${location}` : location;
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
   }
   if (url) Linking.openURL(url);
 };
@@ -59,6 +61,8 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
   };
 
   const [expandedDayIdxMap, setExpandedDayIdxMap] = useState<{ [planId: string]: number | null }>({});
+  const [expandedFlight, setExpandedFlight] = useState<{ [planId: string]: boolean }>({});
+  const [expandedHotel, setExpandedHotel] = useState<{ [planId: string]: boolean }>({});
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,34 +106,69 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
             let flightSummary = null;
             if (flight && flight.itineraries) {
               flightSummary = (
-                <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 15, marginBottom: 10 }}>
                   {/* 출국편 */}
-                  <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
-                    ✈️ {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
-                    {" → "}
-                    {flight.itineraries[0]?.segments[0]?.arrival?.iataCode}
-                    {"  "}
-                    {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
-                    {" "}
-                    {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
-                  </Text>
+                  <View style={styles.flightSection}>
+                    <Text style={styles.flightTitle}>✈️ 출국편</Text>
+                    <View style={styles.flightInfo}>
+                      <View style={styles.flightRoute}>
+                        <Text style={styles.flightCode}>{flight.itineraries[0]?.segments[0]?.departure?.iataCode}</Text>
+                        <Text style={styles.flightArrow}>→</Text>
+                        <Text style={styles.flightCode}>{flight.itineraries[0]?.segments[0]?.arrival?.iataCode}</Text>
+                      </View>
+                      <View style={styles.flightTime}>
+                        <Text style={styles.flightDateTime}>
+                          {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
+                          {" "}
+                          {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
+                        </Text>
+                        <Text style={styles.flightDuration}>
+                          {flight.itineraries[0]?.duration?.slice(2).toLowerCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.flightAirline}>
+                        {flight.itineraries[0]?.segments[0]?.carrierCode} 
+                        {flight.itineraries[0]?.segments[0]?.number}
+                      </Text>
+                    </View>
+                  </View>
+
                   {/* 귀국편(왕복일 때) */}
                   {flight.itineraries[1] && (
-                    <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
-                      ✈️ {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
-                      {" → "}
-                      {flight.itineraries[1]?.segments[0]?.arrival?.iataCode}
-                      {"  "}
-                      {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
-                      {" "}
-                      {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
-                    </Text>
+                    <View style={[styles.flightSection, { marginTop: 12, borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingTop: 12 }]}>
+                      <Text style={styles.flightTitle}>✈️ 귀국편</Text>
+                      <View style={styles.flightInfo}>
+                        <View style={styles.flightRoute}>
+                          <Text style={styles.flightCode}>{flight.itineraries[1]?.segments[0]?.departure?.iataCode}</Text>
+                          <Text style={styles.flightArrow}>→</Text>
+                          <Text style={styles.flightCode}>{flight.itineraries[1]?.segments[0]?.arrival?.iataCode}</Text>
+                        </View>
+                        <View style={styles.flightTime}>
+                          <Text style={styles.flightDateTime}>
+                            {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
+                            {" "}
+                            {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
+                          </Text>
+                          <Text style={styles.flightDuration}>
+                            {flight.itineraries[1]?.duration?.slice(2).toLowerCase()}
+                          </Text>
+                        </View>
+                        <Text style={styles.flightAirline}>
+                          {flight.itineraries[1]?.segments[0]?.carrierCode} 
+                          {flight.itineraries[1]?.segments[0]?.number}
+                        </Text>
+                      </View>
+                    </View>
                   )}
+
                   {/* 총 요금 */}
                   {flight.price?.grandTotal && (
-                    <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
-                      총 요금: {Number(flight.price.grandTotal).toLocaleString()}원
-                    </Text>
+                    <View style={styles.priceSection}>
+                      <Text style={styles.flightPriceLabel}>총 요금</Text>
+                      <Text style={styles.flightPriceValue}>
+                        {Number(flight.price.grandTotal).toLocaleString()}원
+                      </Text>
+                    </View>
                   )}
                 </View>
               );
@@ -190,8 +229,43 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
 
             return (
               <View key={plan.planId || plan.id} style={styles.scheduleCard}>
-                {flightSummary}
-                {accmoSummary}
+                {/* 항공편 정보 */}
+                {flightSummary && (
+                  <View style={styles.expandableSection}>
+                    <TouchableOpacity 
+                      style={styles.expandableHeader}
+                      onPress={() => setExpandedFlight(prev => ({
+                        ...prev,
+                        [plan.planId]: !prev[plan.planId]
+                      }))}
+                    >
+                      <Text style={styles.expandableTitle}>✈️ 항공편 정보</Text>
+                      <Text style={styles.expandableIcon}>
+                        {expandedFlight[plan.planId] ? '▼' : '▶'}
+                      </Text>
+                    </TouchableOpacity>
+                    {expandedFlight[plan.planId] && flightSummary}
+                  </View>
+                )}
+
+                {/* 호텔 정보 */}
+                {accmoSummary && (
+                  <View style={styles.expandableSection}>
+                    <TouchableOpacity 
+                      style={styles.expandableHeader}
+                      onPress={() => setExpandedHotel(prev => ({
+                        ...prev,
+                        [plan.planId]: !prev[plan.planId]
+                      }))}
+                    >
+                      <Text style={styles.expandableTitle}>🏨 호텔 정보</Text>
+                      <Text style={styles.expandableIcon}>
+                        {expandedHotel[plan.planId] ? '▼' : '▶'}
+                      </Text>
+                    </TouchableOpacity>
+                    {expandedHotel[plan.planId] && accmoSummary}
+                  </View>
+                )}
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.destination}>{title}</Text>
                   {/* 목적지(destination) 필드가 없을 수 있으니 조건부 렌더링 */}
@@ -232,7 +306,7 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                           <TouchableOpacity
                             key={aIdx}
                             style={styles.activityBlock}
-                            onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address)}
+                            onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
                           >
                             <Text style={styles.activityText}>
                               {schedule.time} - {schedule.name}
@@ -513,6 +587,99 @@ const styles = StyleSheet.create({
   priceValue: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#1E88E5',
+  },
+  flightSection: {
+    marginBottom: 8,
+  },
+  flightTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E88E5',
+    marginBottom: 8,
+  },
+  flightInfo: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+  },
+  flightRoute: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  flightCode: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  flightArrow: {
+    fontSize: 16,
+    color: '#666',
+    marginHorizontal: 10,
+  },
+  flightTime: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  flightDateTime: {
+    fontSize: 14,
+    color: '#666',
+  },
+  flightDuration: {
+    fontSize: 13,
+    color: '#1E88E5',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  flightAirline: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'right',
+  },
+  priceSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  flightPriceLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  flightPriceValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E88E5',
+  },
+  expandableSection: {
+    marginBottom: 10,
+  },
+  expandableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f0f8ff',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  expandableTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E88E5',
+  },
+  expandableIcon: {
+    fontSize: 16,
     color: '#1E88E5',
   },
 });
