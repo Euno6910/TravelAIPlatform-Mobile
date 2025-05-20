@@ -13,7 +13,7 @@ import {
 interface PlanCreationScreenProps {
   navigation: any;
 }
-
+//홈스크린 챗봇으로 대체(미사용)
 //여행 계획 생성 화면 - 여행 계획 생성 단계별 입력, 계획 생성 결과 화면으로 이동  
 const PlanCreationScreen: React.FC<PlanCreationScreenProps> = ({ navigation }) => {
   const [step, setStep] = useState(1);

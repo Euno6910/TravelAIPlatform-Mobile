@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-
+//홈스크린 챗봇으로 대체(미사용)
 //여행 계획 결과 화면 - 여행 계획 결과 확인, 계획 수정 링크 클릭 시 계획 생성 화면으로 이동, 저장 버튼 클릭 시 홈 화면으로 이동
 interface PlanResultScreenProps {
   navigation: any;
