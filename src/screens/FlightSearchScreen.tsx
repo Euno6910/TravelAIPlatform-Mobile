@@ -6,6 +6,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Calendar } from 'react-native-calendars';
 import Modal from 'react-native-modal';
 
+//항공편 검색 화면
 const API_ENDPOINT = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/amadeus/FlightOffersSearch';
 const AUTOCOMPLETE_ENDPOINT = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/amadeus/Airport_CitySearch';
 

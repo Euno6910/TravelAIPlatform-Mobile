@@ -44,6 +44,7 @@ const fetchLatLng = async (city: string) => {
   return null;
 };
 
+//호텔 검색 화면
 const HotelSearchScreen = () => {
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<Hotel[]>([]);

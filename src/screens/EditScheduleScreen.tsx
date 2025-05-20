@@ -7,6 +7,7 @@ import { useFlight } from '../contexts/FlightContext';
 import { useHotel } from '../contexts/HotelContext';
 import { Auth } from 'aws-amplify';
 
+//여행계획 수정 화면
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
 const EditScheduleScreen = () => {
