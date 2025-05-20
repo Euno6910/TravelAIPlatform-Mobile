@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFlight } from '../contexts/FlightContext';
+import { useHotel } from '../contexts/HotelContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Auth } from 'aws-amplify';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
@@ -12,16 +14,35 @@ const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Sta
 const PlanCreationScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { selectedFlight, setSelectedFlight } = useFlight();
+  const { selectedHotel, setSelectedHotel } = useHotel();
   const [flight, setFlight] = useState<any>(null);
+  const [hotel, setHotel] = useState<any>(null);
   const [title, setTitle] = useState('');
   const [days, setDays] = useState<any[]>([{ date: '', title: '', schedules: [] }]);
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    // 사용자 ID 가져오기
+    const getUserId = async () => {
+      try {
+        const user = await Auth.currentAuthenticatedUser();
+        setUserId(user.attributes.sub);
+      } catch (error) {
+        console.error('사용자 ID 가져오기 실패:', error);
+      }
+    };
+    getUserId();
+  }, []);
 
   // selectedFlight가 변경될 때마다 flight 상태 업데이트
   useEffect(() => {
     if (selectedFlight) {
       setFlight(selectedFlight);
     }
-  }, [selectedFlight]);
+    if (selectedHotel) {
+      setHotel(selectedHotel);
+    }
+  }, [selectedFlight, selectedHotel]);
 
   // 날짜(day) 관련 함수
   const updateDay = (dayIdx: number, newDay: any) => {
@@ -63,22 +84,74 @@ const PlanCreationScreen = () => {
         return;
       }
 
-      // JWT 토큰 가져오기 (예: AsyncStorage 사용)
-      const token = await AsyncStorage.getItem('jwt_token'); // 실제 토큰 키로 변경
+      const session = await Auth.currentSession();
+      const token = session.getIdToken().getJwtToken();
+
+      // 일정 데이터를 Lambda 함수가 기대하는 형식으로 변환
+      let flightData = selectedFlight || flight;
+      const daysWithFlights = days.map((day, idx) => {
+        let schedules = day.schedules || [];
+        // 첫째 날에만 항공권 정보 추가
+        if (idx === 0 && flightData) {
+          const flightArray = Array.isArray(flightData) ? flightData : [flightData];
+          const flightsWithType = flightArray.map(f => ({
+            ...f,
+            type: f.type || 'Flight_Departure',
+          }));
+          schedules = [...flightsWithType, ...schedules];
+        }
+        return { ...day, schedules };
+      });
+
+      const formattedData = daysWithFlights.reduce((acc, day, index) => {
+        acc[index + 1] = {
+          title: day.title,
+          date: day.date,
+          schedules: day.schedules || []
+        };
+        return acc;
+      }, {});
+
+      console.log('변환된 formattedData:', formattedData);
+
+      // Lambda 함수가 기대하는 형식으로 데이터 구성
+      const flightArray = flightData ? (Array.isArray(flightData) ? flightData : [flightData]) : [];
+      const requestData = {
+        name: title,
+        plans: formattedData,
+        accmo_info: hotel ? {
+          hotel: hotel,
+          checkIn: hotel.checkin,
+          checkOut: hotel.checkout
+        } : undefined,
+        paid_plan: 0,
+        flightInfo: flightArray
+      };
+
+      console.log('저장할 데이터:', JSON.stringify(requestData, null, 2));
 
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // 추가!
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          title: title,
-          data: days,
-          flight_info: flight // 항공편 정보도 함께 저장
-        })
+        body: JSON.stringify(requestData)
       });
-      const result = await response.json();
+
+      const responseText = await response.text();
+      console.log('Raw 응답:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('파싱된 응답:', result);
+      } catch (e) {
+        console.error('응답 파싱 실패:', e);
+        throw new Error('서버 응답을 처리할 수 없습니다.');
+      }
+
       if (result.success) {
         Alert.alert('저장 완료', '여행 일정이 저장되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() }
@@ -86,25 +159,21 @@ const PlanCreationScreen = () => {
       } else {
         Alert.alert('저장 실패', result.message || '저장에 실패했습니다.');
       }
-    } catch (e: any) {
-      Alert.alert('오류', e.message || '저장 중 오류가 발생했습니다.');
+    } catch (error: any) {
+      console.error('저장 중 오류:', error);
+      Alert.alert('오류', error.message || '저장 중 오류가 발생했습니다.');
     }
   };
 
   return (
     <ScrollView style={{ flex: 1, padding: 20, backgroundColor: '#F8F9FF' }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* 항공편 정보 카드 */}
-      <View style={{
-        backgroundColor: '#f0f8ff',
-        borderRadius: 8,
-        padding: 10,
-        marginBottom: 18,
-      }}>
+      <View style={styles.infoCard}>
         {flight && flight.itineraries ? (
           <>
-            {/* 출국편 */}
-            <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
-              ✈️ {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
+            <Text style={styles.infoTitle}>✈️ 항공편 정보</Text>
+            <Text style={styles.infoText}>
+              {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
               {" → "}
               {flight.itineraries[0]?.segments[0]?.arrival?.iataCode}
               {"  "}
@@ -112,10 +181,9 @@ const PlanCreationScreen = () => {
               {" "}
               {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
             </Text>
-            {/* 귀국편(왕복일 때) */}
             {flight.itineraries[1] && (
-              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
-                ✈️ {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
+              <Text style={styles.infoText}>
+                {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
                 {" → "}
                 {flight.itineraries[1]?.segments[0]?.arrival?.iataCode}
                 {"  "}
@@ -124,47 +192,67 @@ const PlanCreationScreen = () => {
                 {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
               </Text>
             )}
-            {/* 총 요금 */}
             {flight.price?.grandTotal && (
-              <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
+              <Text style={styles.priceText}>
                 총 요금: {Number(flight.price.grandTotal).toLocaleString()}원
               </Text>
             )}
           </>
         ) : (
-          <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
-            등록된 항공편 정보가 없습니다
-          </Text>
+          <Text style={styles.emptyText}>등록된 항공편 정보가 없습니다</Text>
         )}
-        {/* 항공편 수정 버튼 */}
         <TouchableOpacity 
-          style={{
-            backgroundColor: '#1E88E5',
-            padding: 8,
-            borderRadius: 6,
-            marginTop: 10,
-            alignItems: 'center'
-          }}
+          style={styles.editButton}
           onPress={() => {
-            // 현재 선택된 항공편 정보를 초기화하고 FlightSearchScreen으로 이동
             setSelectedFlight(null);
             navigation.navigate('FlightSearch');
           }}
         >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+          <Text style={styles.editButtonText}>
             {flight && flight.itineraries ? '항공편 수정' : '항공편 등록'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#4A6572' }}>새 여행 일정 만들기</Text>
-      <Text style={{ color: '#4A6572' }}>제목</Text>
+      {/* 호텔 정보 카드 */}
+      <View style={styles.infoCard}>
+        {hotel ? (
+          <>
+            <Text style={styles.infoTitle}>🏨 호텔 정보</Text>
+            <Text style={styles.infoText}>{hotel.hotel_name}</Text>
+            <Text style={styles.infoSubText}>{hotel.address}</Text>
+            <Text style={styles.infoSubText}>
+              {hotel.checkin} ~ {hotel.checkout}
+            </Text>
+            <Text style={styles.priceText}>{hotel.price}</Text>
+          </>
+        ) : (
+          <Text style={styles.emptyText}>등록된 호텔 정보가 없습니다</Text>
+        )}
+        <TouchableOpacity 
+          style={styles.editButton}
+          onPress={() => {
+            setSelectedHotel(null);
+            navigation.navigate('HotelSearch', {
+              checkIn: days[0]?.date || '',
+              checkOut: days[days.length - 1]?.date || ''
+            });
+          }}
+        >
+          <Text style={styles.editButtonText}>
+            {hotel ? '호텔 수정' : '호텔 등록'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 기존 여행 계획 입력 부분 */}
+      <Text style={styles.sectionTitle}>새 여행 일정 만들기</Text>
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={{ borderWidth: 1, borderColor: '#E0E7FF', borderRadius: 8, padding: 8, marginBottom: 20, color: '#4A6572', backgroundColor: 'white' }}
-        placeholderTextColor={'#A5B4CB'}
+        style={styles.titleInput}
         placeholder="여행 제목을 입력하세요"
+        placeholderTextColor="#A5B4CB"
       />
       {days.map((day, dayIdx) => (
         <View key={dayIdx} style={{ marginBottom: 20, padding: 12, backgroundColor: '#F0F4FF', borderRadius: 10 }}>
@@ -220,23 +308,101 @@ const PlanCreationScreen = () => {
           </TouchableOpacity>
         </View>
       ))}
-      <TouchableOpacity onPress={addDay} style={{ marginBottom: 20 }}>
-        <Text style={{ color: '#6B8AFE', fontWeight: 'bold', fontSize: 16 }}>+ 날짜 추가</Text>
+      <TouchableOpacity onPress={addDay} style={styles.addButton}>
+        <Text style={styles.addButtonText}>+ 날짜 추가</Text>
       </TouchableOpacity>
       <TouchableOpacity 
         onPress={handleSave} 
-        style={{
-          backgroundColor: '#6B8AFE',
-          padding: 15,
-          borderRadius: 8,
-          alignItems: 'center',
-          marginBottom: 20
-        }}
+        style={styles.saveButton}
       >
-        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>저장</Text>
+        <Text style={styles.saveButtonText}>저장</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  infoCard: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  infoTitle: {
+    color: '#1E88E5',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  infoText: {
+    color: '#333',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  infoSubText: {
+    color: '#666',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  priceText: {
+    color: '#1E88E5',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  editButton: {
+    backgroundColor: '#1E88E5',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#4A6572',
+  },
+  titleInput: {
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    color: '#4A6572',
+    backgroundColor: 'white',
+    fontSize: 16,
+  },
+  addButton: {
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: '#1E88E5',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: '#1E88E5',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
 
 export default PlanCreationScreen; 
