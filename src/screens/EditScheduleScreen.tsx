@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFlight } from '../contexts/FlightContext';
 import { useHotel } from '../contexts/HotelContext';
+import { Auth } from 'aws-amplify';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
@@ -85,6 +86,10 @@ const EditScheduleScreen = () => {
   // 저장 핸들러
   const handleSave = async () => {
     try {
+      // AWS Amplify에서 현재 세션 가져오기
+      const session = await Auth.currentSession();
+      const token = session.getIdToken().getJwtToken();
+
       const planId = plan.planId || plan.id;
       console.log('현재 plan:', plan);
       console.log('현재 selectedFlight:', selectedFlight);
@@ -93,7 +98,23 @@ const EditScheduleScreen = () => {
       console.log('현재 days:', days);
       
       // 일정 데이터를 Lambda 함수가 기대하는 형식으로 변환
-      const formattedData = days.reduce((acc, day, index) => {
+      // 항공권 정보를 schedules에 포함시키기 위해 days를 변환
+      let flightData = selectedFlight || flight;
+      const daysWithFlights = days.map((day, idx) => {
+        let schedules = day.schedules || [];
+        // 첫째 날에만 항공권 정보 추가(예시, 필요에 따라 위치 조정)
+        if (idx === 0 && flightData) {
+          const flightArray = Array.isArray(flightData) ? flightData : [flightData];
+          // 항공권 객체에 type이 없으면 type: 'Flight_Departure'로 추가
+          const flightsWithType = flightArray.map(f => ({
+            ...f,
+            type: f.type || 'Flight_Departure',
+          }));
+          schedules = [...flightsWithType, ...schedules];
+        }
+        return { ...day, schedules };
+      });
+      const formattedData = daysWithFlights.reduce((acc, day, index) => {
         acc[index + 1] = {
           title: day.title,
           date: day.date,
@@ -104,14 +125,15 @@ const EditScheduleScreen = () => {
 
       console.log('변환된 formattedData:', formattedData);
 
-      // Lambda 함수가 기대하는 형식으로 데이터 구성
+      // Lambda 함수가 기대하는 형식으로 데이터 구성 (flightInfo 필드 추가)
+      const flightArray = flightData ? (Array.isArray(flightData) ? flightData : [flightData]) : [];
       const requestData = {
         plan_id: planId,
         name: title,
         plans: formattedData,
-        flight_details: selectedFlight || flight,
         accmo_info: accmo,
-        paid_plan: plan?.paid_plan || 0
+        paid_plan: plan?.paid_plan || 0,
+        flightInfo: flightArray // 별도 필드로 추가
       };
 
       console.log('저장할 데이터:', JSON.stringify(requestData, null, 2));
@@ -120,7 +142,8 @@ const EditScheduleScreen = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`  // 토큰 추가
         },
         body: JSON.stringify(requestData)
       });
@@ -159,42 +182,51 @@ const EditScheduleScreen = () => {
         padding: 10,
         marginBottom: 18,
       }}>
-        {flight && flight.itineraries ? (
-          <>
-            {/* 출국편 */}
-            <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
-              ✈️ {flight.itineraries[0]?.segments[0]?.departure?.iataCode}
-              {" → "}
-              {flight.itineraries[0]?.segments[0]?.arrival?.iataCode}
-              {"  "}
-              {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
-              {" "}
-              {flight.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
+        {(() => {
+          const flightArray = Array.isArray(flight) ? flight : flight ? [flight] : [];
+          return flightArray.length > 0 ? (
+            flightArray.map((f, idx) => (
+              <View key={idx}>
+                {/* 출국편 */}
+                {f.itineraries && (
+                  <>
+                    <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15 }}>
+                      ✈️ {f.itineraries[0]?.segments[0]?.departure?.iataCode}
+                      {" → "}
+                      {f.itineraries[0]?.segments[0]?.arrival?.iataCode}
+                      {"  "}
+                      {f.itineraries[0]?.segments[0]?.departure?.at?.slice(0, 10)}
+                      {" "}
+                      {f.itineraries[0]?.segments[0]?.departure?.at?.slice(11, 16)}
+                    </Text>
+                    {/* 귀국편(왕복일 때) */}
+                    {f.itineraries[1] && (
+                      <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
+                        ✈️ {f.itineraries[1]?.segments[0]?.departure?.iataCode}
+                        {" → "}
+                        {f.itineraries[1]?.segments[0]?.arrival?.iataCode}
+                        {"  "}
+                        {f.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
+                        {" "}
+                        {f.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
+                      </Text>
+                    )}
+                    {/* 총 요금 */}
+                    {f.price?.grandTotal && (
+                      <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
+                        총 요금: {Number(f.price.grandTotal).toLocaleString()}원
+                      </Text>
+                    )}
+                  </>
+                )}
+              </View>
+            ))
+          ) : (
+            <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+              등록된 항공편 정보가 없습니다
             </Text>
-            {/* 귀국편(왕복일 때) */}
-            {flight.itineraries[1] && (
-              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 15, marginTop: 2 }}>
-                ✈️ {flight.itineraries[1]?.segments[0]?.departure?.iataCode}
-                {" → "}
-                {flight.itineraries[1]?.segments[0]?.arrival?.iataCode}
-                {"  "}
-                {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(0, 10)}
-                {" "}
-                {flight.itineraries[1]?.segments[0]?.departure?.at?.slice(11, 16)}
-              </Text>
-            )}
-            {/* 총 요금 */}
-            {flight.price?.grandTotal && (
-              <Text style={{ color: '#333', fontSize: 13, marginTop: 2 }}>
-                총 요금: {Number(flight.price.grandTotal).toLocaleString()}원
-              </Text>
-            )}
-          </>
-        ) : (
-          <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
-            등록된 항공편 정보가 없습니다
-          </Text>
-        )}
+          );
+        })()}
         {/* 항공편 수정 버튼 */}
         <TouchableOpacity 
           style={{
@@ -205,13 +237,12 @@ const EditScheduleScreen = () => {
             alignItems: 'center'
           }}
           onPress={() => {
-            // 현재 선택된 항공편 정보를 초기화하고 FlightSearchScreen으로 이동
             setSelectedFlight(null);
             navigation.navigate('FlightSearch');
           }}
         >
           <Text style={{ color: 'white', fontWeight: 'bold' }}>
-            {flight && flight.itineraries ? '항공편 수정' : '항공편 등록'}
+            {flight && (Array.isArray(flight) ? flight.length > 0 && flight[0].itineraries : flight.itineraries) ? '항공편 수정' : '항공편 등록'}
           </Text>
         </TouchableOpacity>
       </View>
