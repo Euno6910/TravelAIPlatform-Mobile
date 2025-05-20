@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -33,6 +34,7 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
   // 실제 데이터 사용
   const plans = route.params?.plans || [];
   const flight = plans[0]?.flight_info;
+  const accmo = plans[0]?.accmo_info; // 숙박 정보 추가
 
   const getStatus = (start: string, end: string) => {
     const today = new Date();
@@ -133,9 +135,63 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
               );
             }
 
+            // 숙박 정보 표시
+            let accmoSummary = null;
+            if (accmo) {
+              const hotel = accmo.hotel;
+              accmoSummary = (
+                <View style={styles.accmoCard}>
+                  {hotel.main_photo_url && (
+                    <Image
+                      source={{ uri: hotel.main_photo_url }}
+                      style={styles.accmoImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.accmoInfo}>
+                    <View style={styles.accmoHeader}>
+                      <Text style={styles.accmoName}>{hotel.hotel_name}</Text>
+                      {hotel.review_score && (
+                        <View style={styles.reviewScore}>
+                          <Text style={styles.reviewScoreText}>{hotel.review_score}</Text>
+                          <Text style={styles.reviewScoreWord}>{hotel.review_score_word}</Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <View style={styles.accmoDetails}>
+                      <Text style={styles.accmoAddress}>{hotel.address}</Text>
+                      <Text style={styles.accmoCity}>{hotel.city}</Text>
+                      
+                      <View style={styles.checkInOutContainer}>
+                        <View style={styles.checkInOut}>
+                          <Text style={styles.checkInOutLabel}>체크인</Text>
+                          <Text style={styles.checkInOutValue}>{hotel.checkin}</Text>
+                          <Text style={styles.checkInOutTime}>{hotel.checkin_from}</Text>
+                        </View>
+                        <View style={styles.checkInOut}>
+                          <Text style={styles.checkInOutLabel}>체크아웃</Text>
+                          <Text style={styles.checkInOutValue}>{hotel.checkout}</Text>
+                          <Text style={styles.checkInOutTime}>{hotel.checkout_until}</Text>
+                        </View>
+                      </View>
+
+                      {hotel.price && (
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.priceLabel}>객실 요금</Text>
+                          <Text style={styles.priceValue}>{hotel.price}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              );
+            }
+
             return (
               <View key={plan.planId || plan.id} style={styles.scheduleCard}>
                 {flightSummary}
+                {accmoSummary}
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.destination}>{title}</Text>
                   {/* 목적지(destination) 필드가 없을 수 있으니 조건부 렌더링 */}
@@ -358,6 +414,106 @@ const styles = StyleSheet.create({
     color: '#1E88E5',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  accmoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  accmoImage: {
+    width: '100%',
+    height: 200,
+  },
+  accmoInfo: {
+    padding: 16,
+  },
+  accmoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  accmoName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    marginRight: 12,
+  },
+  reviewScore: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  reviewScoreText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  reviewScoreWord: {
+    color: '#fff',
+    fontSize: 12,
+  },
+  accmoDetails: {
+    gap: 8,
+  },
+  accmoAddress: {
+    fontSize: 14,
+    color: '#666',
+  },
+  accmoCity: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  checkInOutContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+  },
+  checkInOut: {
+    flex: 1,
+  },
+  checkInOutLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  checkInOutValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  checkInOutTime: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  priceContainer: {
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  priceValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E88E5',
   },
 });
 

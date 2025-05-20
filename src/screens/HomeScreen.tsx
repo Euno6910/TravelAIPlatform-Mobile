@@ -116,7 +116,12 @@ const HomeScreen = () => {
         adults: adults,
         children: children,
         email: userEmail,
-        flightInfo: selectedFlight
+        flightInfo: selectedFlight,
+        accommodationInfo: selectedHotel ? {
+          hotel: selectedHotel,
+          checkIn: selectedHotel.checkin,
+          checkOut: selectedHotel.checkout
+        } : undefined
       };
 
       console.log('API 요청 데이터:', requestData);
@@ -145,6 +150,10 @@ const HomeScreen = () => {
         console.error('JSON 파싱 에러:', parseError);
         throw new Error('서버 응답을 처리할 수 없습니다.');
       }
+
+      // planText 부분도 출력
+      const planText = data.plan?.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log('planText:', planText);
 
       if (data.plan?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const geminiResponse = data.plan.candidates[0].content.parts[0].text;
@@ -322,7 +331,10 @@ const HomeScreen = () => {
                 alignItems: 'center',
                 marginBottom: 8,
               }}
-              onPress={() => navigation.navigate('HotelSearch')}
+              onPress={() => navigation.navigate('HotelSearch', {
+                checkIn: selectedStartDate,
+                checkOut: selectedEndDate
+              })}
             >
               <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16 }}>
                 호텔 검색하기

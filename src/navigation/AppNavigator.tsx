@@ -48,8 +48,23 @@ export type RootStackParamList = {
   Map: undefined;
   ManualPlan: undefined;
   FlightSearch: undefined;
-  EditSchedule: { plan: any };
-  HotelSearch: undefined;
+  EditSchedule: { 
+    plan?: any;
+    selectedHotel?: {
+      hotel_id: string;
+      hotel_name: string;
+      address: string;
+      review_score: number;
+      price: number;
+      checkin: string;
+      checkout: string;
+    };
+  };
+  HotelSearch: {
+    currentHotel?: any;
+    checkIn?: string;
+    checkOut?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

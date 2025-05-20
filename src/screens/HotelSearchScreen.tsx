@@ -10,8 +10,10 @@ import {
   Alert,
 } from 'react-native';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useHotel } from '../contexts/HotelContext';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 interface Hotel {
   hotel_id: string;
@@ -48,7 +50,9 @@ const HotelSearchScreen = () => {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute();
+  const { currentHotel, checkIn, checkOut } = route.params as any;
   const { setSelectedHotel } = useHotel();
 
   const handleSearch = async () => {
@@ -90,27 +94,14 @@ const HotelSearchScreen = () => {
     }
   };
 
-  // 호텔 선택 시 Context에 저장 + Alert + 홈으로 이동
-  const handleSelectHotel = (hotel: Hotel) => {
+  const handleHotelSelect = (hotel: any) => {
+    // 선택한 호텔 정보를 Context에 저장하고 이전 화면으로 돌아가기
     setSelectedHotel({
       ...hotel,
-      city,
-      checkin,
-      checkout,
-      adults,
-      children,
+      checkin: checkIn,
+      checkout: checkOut
     });
-    Alert.alert(
-      '알림',
-      '숙박일정이 반영되었습니다.',
-      [
-        {
-          text: '확인',
-          onPress: () => navigation.goBack(),
-        },
-      ],
-      { cancelable: false }
-    );
+    navigation.goBack();
   };
 
   return (
@@ -167,7 +158,7 @@ const HotelSearchScreen = () => {
       ) : (
         <ScrollView style={styles.hotelList}>
           {hotels.map((hotel) => (
-            <TouchableOpacity key={hotel.hotel_id} style={styles.hotelCard} onPress={() => handleSelectHotel(hotel)}>
+            <TouchableOpacity key={hotel.hotel_id} style={styles.hotelCard} onPress={() => handleHotelSelect(hotel)}>
               <Text style={styles.hotelName}>{hotel.hotel_name}</Text>
               <Text style={styles.hotelAddress}>{hotel.address}</Text>
               <Text style={styles.hotelPrice}>{hotel.price}</Text>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFlight } from '../contexts/FlightContext';
+import { useHotel } from '../contexts/HotelContext';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
@@ -12,7 +13,9 @@ const EditScheduleScreen = () => {
   const route = useRoute();
   const plan = (route.params as any)?.plan;
   const { selectedFlight, setSelectedFlight } = useFlight();
+  const { selectedHotel, setSelectedHotel } = useHotel();
   const [flight, setFlight] = useState(plan?.flight_info);
+  const [accmo, setAccmo] = useState(plan?.accmo_info);
 
   // travelInfo 구조 파싱 (TravelScheduleScreen.tsx와 동일하게)
   let travelInfo: any = {};
@@ -35,6 +38,17 @@ const EditScheduleScreen = () => {
       setFlight(selectedFlight);
     }
   }, [selectedFlight]);
+
+  // selectedHotel이 변경될 때마다 accmo 상태 업데이트
+  useEffect(() => {
+    if (selectedHotel) {
+      setAccmo({
+        hotel: selectedHotel,
+        checkIn: selectedHotel.checkin,
+        checkOut: selectedHotel.checkout
+      });
+    }
+  }, [selectedHotel]);
 
   // 날짜(day) 관련 함수
   const updateDay = (dayIdx: number, newDay: any) => {
@@ -72,19 +86,57 @@ const EditScheduleScreen = () => {
   const handleSave = async () => {
     try {
       const planId = plan.planId || plan.id;
+      console.log('현재 plan:', plan);
+      console.log('현재 selectedFlight:', selectedFlight);
+      console.log('현재 flight:', flight);
+      console.log('현재 accmo:', accmo);
+      console.log('현재 days:', days);
+      
+      // 일정 데이터를 Lambda 함수가 기대하는 형식으로 변환
+      const formattedData = days.reduce((acc, day, index) => {
+        acc[index + 1] = {
+          title: day.title,
+          date: day.date,
+          schedules: day.schedules || []
+        };
+        return acc;
+      }, {});
+
+      console.log('변환된 formattedData:', formattedData);
+
+      // Lambda 함수가 기대하는 형식으로 데이터 구성
+      const requestData = {
+        plan_id: planId,
+        name: title,
+        plans: formattedData,
+        flight_details: selectedFlight || flight,
+        accmo_info: accmo,
+        paid_plan: plan?.paid_plan || 0
+      };
+
+      console.log('저장할 데이터:', JSON.stringify(requestData, null, 2));
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          plan_id: planId,
-          title: title,
-          data: days,
-          flight_info: flight // 항공편 정보도 함께 저장
-        })
+        body: JSON.stringify(requestData)
       });
-      const result = await response.json();
+
+      const responseText = await response.text();
+      console.log('Raw 응답:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('파싱된 응답:', result);
+      } catch (e) {
+        console.error('응답 파싱 실패:', e);
+        throw new Error('서버 응답을 처리할 수 없습니다.');
+      }
+
       if (result.success) {
         Alert.alert('저장 완료', '여행 일정이 저장되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() }
@@ -93,6 +145,7 @@ const EditScheduleScreen = () => {
         Alert.alert('저장 실패', result.message || '저장에 실패했습니다.');
       }
     } catch (e: any) {
+      console.error('저장 중 오류:', e);
       Alert.alert('오류', e.message || '저장 중 오류가 발생했습니다.');
     }
   };
@@ -162,6 +215,121 @@ const EditScheduleScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* 호텔 정보 카드 */}
+      <View style={{
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 18,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      }}>
+        {accmo?.hotel ? (
+          <>
+            {accmo.hotel.main_photo_url && (
+              <Image
+                source={{ uri: accmo.hotel.main_photo_url }}
+                style={{
+                  width: '100%',
+                  height: 150,
+                  borderRadius: 8,
+                  marginBottom: 10
+                }}
+                resizeMode="cover"
+              />
+            )}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Text style={{ color: '#333', fontWeight: 'bold', fontSize: 16, flex: 1, marginRight: 10 }}>
+                {accmo.hotel.hotel_name}
+              </Text>
+              {accmo.hotel.review_score && (
+                <View style={{
+                  backgroundColor: '#4CAF50',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 4,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
+                    {accmo.hotel.review_score}
+                  </Text>
+                  <Text style={{ color: '#fff', fontSize: 10 }}>
+                    {accmo.hotel.review_score_word}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={{ color: '#666', fontSize: 14, marginTop: 4 }}>
+              {accmo.hotel.address}
+            </Text>
+            <Text style={{ color: '#666', fontSize: 14, marginTop: 2 }}>
+              {accmo.hotel.city}
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              marginTop: 8,
+              backgroundColor: '#f5f5f5',
+              padding: 8,
+              borderRadius: 6,
+            }}>
+              <View>
+                <Text style={{ color: '#666', fontSize: 12 }}>체크인</Text>
+                <Text style={{ color: '#333', fontSize: 14, fontWeight: 'bold' }}>
+                  {accmo.hotel.checkin}
+                </Text>
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {accmo.hotel.checkin_from}
+                </Text>
+              </View>
+              <View>
+                <Text style={{ color: '#666', fontSize: 12 }}>체크아웃</Text>
+                <Text style={{ color: '#333', fontSize: 14, fontWeight: 'bold' }}>
+                  {accmo.hotel.checkout}
+                </Text>
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {accmo.hotel.checkout_until}
+                </Text>
+              </View>
+            </View>
+            {accmo.hotel.price && (
+              <Text style={{ color: '#1E88E5', fontSize: 16, fontWeight: 'bold', marginTop: 8 }}>
+                {accmo.hotel.price}
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+            등록된 호텔 정보가 없습니다
+          </Text>
+        )}
+        {/* 호텔 수정 버튼 */}
+        <TouchableOpacity 
+          style={{
+            backgroundColor: '#1E88E5',
+            padding: 8,
+            borderRadius: 6,
+            marginTop: 10,
+            alignItems: 'center'
+          }}
+          onPress={() => {
+            // 현재 선택된 호텔 정보를 초기화하고 HotelSearchScreen으로 이동
+            setSelectedHotel(null);
+            navigation.navigate('HotelSearch', {
+              checkIn: accmo?.checkIn,
+              checkOut: accmo?.checkOut
+            });
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+            {accmo?.hotel ? '호텔 수정' : '호텔 등록'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#4A6572' }}>여행 일정 수정</Text>
       <Text style={{ color: '#4A6572' }}>제목</Text>
       <TextInput
