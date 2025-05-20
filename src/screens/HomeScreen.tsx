@@ -19,11 +19,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Calendar } from 'react-native-calendars';
 import { useFlight } from '../contexts/FlightContext';
+import { useNavigation } from '@react-navigation/native';
+import { useHotel } from '../contexts/HotelContext';
 
 //앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
-const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {
+const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [selectedDates, setSelectedDates] = useState('날짜를 선택하세요');
@@ -40,6 +43,7 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
   const [selectedEndDate, setSelectedEndDate] = useState('');
   const [isSelectingEndDate, setIsSelectingEndDate] = useState(false);
   const { selectedFlight } = useFlight();
+  const { selectedHotel } = useHotel();
 
   useEffect(() => {
     checkAuthState();
@@ -299,7 +303,7 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
                 borderWidth: 1,
                 borderColor: '#1E88E5',
                 alignItems: 'center',
-                marginBottom: selectedFlight ? 8 : 0
+                marginBottom: 8,
               }}
               onPress={() => navigation.navigate('FlightSearch')}
             >
@@ -307,6 +311,24 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
                 {selectedFlight ? '항공권 다시 선택하기' : '항공권 선택하기'}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 8,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: '#1E88E5',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}
+              onPress={() => navigation.navigate('HotelSearch')}
+            >
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16 }}>
+                호텔 검색하기
+              </Text>
+            </TouchableOpacity>
+
             {selectedFlight && (
               <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 10, marginTop: 4 }}>
                 <Text style={{ color: '#333', fontSize: 14 }}>
@@ -318,6 +340,23 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
                   {selectedFlight.itineraries ?
                     `${selectedFlight.itineraries[0].segments[0].departure.at.split('T')[0]} 출발` :
                     ''}
+                </Text>
+              </View>
+            )}
+
+            {selectedHotel && (
+              <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 10, marginTop: 4 }}>
+                <Text style={{ color: '#333', fontSize: 14, fontWeight: 'bold' }}>
+                  🏨 {selectedHotel.hotel_name}
+                </Text>
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {selectedHotel.address}
+                </Text>
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {selectedHotel.checkin} ~ {selectedHotel.checkout}
+                </Text>
+                <Text style={{ color: '#007AFF', fontWeight: 'bold', fontSize: 14 }}>
+                  {selectedHotel.price}
                 </Text>
               </View>
             )}

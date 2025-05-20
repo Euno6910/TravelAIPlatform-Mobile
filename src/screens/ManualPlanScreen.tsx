@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFlight } from '../contexts/FlightContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
 
@@ -62,10 +63,14 @@ const PlanCreationScreen = () => {
         return;
       }
 
+      // JWT 토큰 가져오기 (예: AsyncStorage 사용)
+      const token = await AsyncStorage.getItem('jwt_token'); // 실제 토큰 키로 변경
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // 추가!
         },
         body: JSON.stringify({
           title: title,

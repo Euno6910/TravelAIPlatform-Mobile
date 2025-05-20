@@ -17,6 +17,7 @@ import MapScreen from '../screens/MapScreen';
 import ManualPlanScreen from '../screens/ManualPlanScreen';
 import FlightSearchScreen from '../screens/FlightSearchScreen';
 import EditScheduleScreen from '../screens/EditScheduleScreen';
+import HotelSearchScreen from '../screens/HotelSearchScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -48,6 +49,7 @@ export type RootStackParamList = {
   ManualPlan: undefined;
   FlightSearch: undefined;
   EditSchedule: { plan: any };
+  HotelSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -61,7 +63,7 @@ const AppNavigator: React.FC = () => {
           headerShown: false
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="MyPage" component={MyPageScreen} />
@@ -74,6 +76,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="ManualPlan" component={ManualPlanScreen} />
         <Stack.Screen name="FlightSearch" component={FlightSearchScreen} />
         <Stack.Screen name="EditSchedule" component={EditScheduleScreen} />
+        <Stack.Screen name="HotelSearch" component={HotelSearchScreen} options={{ title: '호텔 검색' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -10,18 +10,24 @@ import './src/awsConfig'; // 상대경로 잘 맞춰서 import
 import React from 'react';
 import { StatusBar, SafeAreaView } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { FlightProvider } from './src/contexts/FlightContext';
+import { HotelProvider } from './src/contexts/HotelContext';
 
-function App(): React.JSX.Element {
+const App = () => {
   return (
-    <FlightProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <AppNavigator />
-      </GestureHandlerRootView>
-    </FlightProvider>
+    <SafeAreaProvider>
+      <FlightProvider>
+        <HotelProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+            <AppNavigator />
+          </GestureHandlerRootView>
+        </HotelProvider>
+      </FlightProvider>
+    </SafeAreaProvider>
   );
-}
+};
 
 export default App;
