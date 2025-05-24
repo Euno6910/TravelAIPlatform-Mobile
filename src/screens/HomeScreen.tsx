@@ -258,7 +258,14 @@ const HomeScreen = () => {
       >
         <ScrollView>
           <View style={styles.header}>
-            <Text style={styles.logo}>바람길</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image
+                source={require('../assets/WindRoad_logo_test.png')}
+                style={{ width: 32, height: 32, marginRight: 8 }}
+                resizeMode="contain"
+              />
+              <Text style={styles.logo}>WINDROAD</Text>
+            </View>
             <View style={styles.headerRight}>
               {isLoggedIn ? (
                 <>
