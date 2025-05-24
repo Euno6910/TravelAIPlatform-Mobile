@@ -27,6 +27,8 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !name || !birthdate || !phoneNumber) {
@@ -155,8 +157,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>이름</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: '#222' }]}
                     placeholder="이름을 입력하세요"
+                    placeholderTextColor="#222"
                     value={name}
                     onChangeText={setName}
                     keyboardType="default"
@@ -171,8 +174,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>이메일</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: '#222' }]}
                     placeholder="이메일을 입력하세요"
+                    placeholderTextColor="#222"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -183,8 +187,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>생년월일</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: '#222' }]}
                     placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#222"
                     value={birthdate}
                     onChangeText={setBirthdate}
                     keyboardType="numbers-and-punctuation"
@@ -195,8 +200,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>전화번호</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: '#222' }]}
                     placeholder="+8210xxxxxxxx"
+                    placeholderTextColor="#222"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
@@ -206,13 +212,21 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>비밀번호</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="비밀번호를 입력하세요"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TextInput
+                      style={[styles.input, { color: '#222', flex: 1 }]}
+                      placeholder="비밀번호를 입력하세요"
+                      placeholderTextColor="#222"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Text style={{ fontSize: 18, marginLeft: 8 }}>
+                        {showPassword ? '🙈' : '👁️'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={styles.passwordGuide}>
                     비밀번호는 8자 이상이며, 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.
                   </Text>
@@ -220,13 +234,21 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>비밀번호 확인</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="비밀번호를 다시 입력하세요"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TextInput
+                      style={[styles.input, { color: '#222', flex: 1 }]}
+                      placeholder="비밀번호를 다시 입력하세요"
+                      placeholderTextColor="#222"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showConfirmPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <Text style={{ fontSize: 18, marginLeft: 8 }}>
+                        {showConfirmPassword ? '🙈' : '👁️'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <TouchableOpacity 
@@ -248,8 +270,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>인증 코드</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: '#222' }]}
                     placeholder="이메일로 받은 인증 코드를 입력하세요"
+                    placeholderTextColor="#222"
                     value={verificationCode}
                     onChangeText={setVerificationCode}
                     keyboardType="number-pad"
@@ -328,6 +351,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
+    color: '#000',
   },
   passwordGuide: {
     fontSize: 11,

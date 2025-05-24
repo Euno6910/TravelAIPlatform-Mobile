@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 
 const SplashScreen = () => {
+  const [showTitle, setShowTitle] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTitle(true);
+    }, 1000); // 1초 후 글자 표시
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ImageBackground
-      source={require('../assets/Travel.gif')}
+      source={require('../assets/Travel.png')}
       style={styles.background}
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <Text style={styles.title}>WINDROAD</Text>
+        {showTitle && <Text style={styles.title}>WINDROAD</Text>}
       </View>
     </ImageBackground>
   );
