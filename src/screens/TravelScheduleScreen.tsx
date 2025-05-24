@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { RouteProp } from '@react-navigation/native';
+import { requestNotificationPermission, scheduleNotification, showNotification } from '../utils/notification';
 
 //마이페이지 - 여행계획
 type TravelScheduleScreenProps = {
@@ -63,6 +64,60 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
   const [expandedDayIdxMap, setExpandedDayIdxMap] = useState<{ [planId: string]: number | null }>({});
   const [expandedFlight, setExpandedFlight] = useState<{ [planId: string]: boolean }>({});
   const [expandedHotel, setExpandedHotel] = useState<{ [planId: string]: boolean }>({});
+
+  useEffect(() => {
+    const setupNotifications = async () => {
+      const hasPermission = await requestNotificationPermission();
+      if (hasPermission && plans.length > 0) {
+        plans.forEach((plan: any) => {
+          let planData = plan.plan_data;
+          let travelInfo: any = {};
+          try {
+            const text = planData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+            const jsonStr = match ? match[1] : text;
+            travelInfo = JSON.parse(jsonStr);
+          } catch (e) {
+            travelInfo = {};
+          }
+
+          // 기존: 여행 시작일 알림 (앱 켜면 바로)
+          const title = travelInfo.title || '-';
+          const startDate = travelInfo.days?.[0]?.date || '';
+          if (startDate) {
+            const dateObj = new Date(startDate);
+            const month = dateObj.getMonth() + 1;
+            const day = dateObj.getDate();
+            showNotification(
+              '여행 알림',
+              `${month}월 ${day}일에  '${title}'이 예정되어 있습니다.`
+            );
+          }
+
+          // 각 일정별 1시간 전 알림
+          travelInfo.days?.forEach((day: any) => {
+            day.schedules?.forEach((schedule: any) => {
+              if (!schedule.time || !schedule.name) return;
+              const [hour, minute] = schedule.time.split(':').map(Number);
+              const dateObj = new Date(day.date);
+              dateObj.setHours(hour, minute, 0, 0);
+              // 1시간 전
+              const oneHourBefore = new Date(dateObj.getTime() - 60 * 60 * 1000);
+              const msg = `${schedule.time} ${schedule.name} 일정이 1시간 뒤 시작됩니다!`;
+              const now = new Date();
+              const delay = oneHourBefore.getTime() - now.getTime();
+              if (delay > 0) {
+                setTimeout(() => {
+                  showNotification('여행 알림', msg);
+                }, delay);
+              }
+            });
+          });
+        });
+      }
+    };
+    setupNotifications();
+  }, [plans]);
 
   return (
     <SafeAreaView style={styles.container}>
