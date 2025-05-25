@@ -22,6 +22,7 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -52,7 +53,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         </View>
 
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>바람길</Text>
+          <Text style={styles.logo}>WINDROAD</Text>
           <Text style={styles.subtitle}>AI와 함께하는 스마트한 여행 계획</Text>
         </View>
 
@@ -74,14 +75,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>비밀번호</Text>
-            <TextInput
-              style={[styles.input, { color: '#222' }]}
-              placeholderTextColor="#222"
-              placeholder="비밀번호를 입력하세요"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                style={[styles.input, { color: '#222', flex: 1 }]}
+                placeholderTextColor="#222"
+                placeholder="비밀번호를 입력하세요"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Text style={{ fontSize: 18, marginLeft: 8 }}>
+                  {showPassword ? '🙈' : '👁️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity 

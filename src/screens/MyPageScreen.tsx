@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,6 +25,13 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
   const [userInfo, setUserInfo] = useState<UserAttributes | null>(null);
   const [travelPlans, setTravelPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // 회원탈퇴 관련 상태
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
@@ -90,6 +99,86 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!password) {
+      Alert.alert('오류', '비밀번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 비밀번호 검증
+      await Auth.signIn(userInfo?.email || '', password);
+      
+      // 이메일 인증 코드 발송
+      await Auth.verifyUserAttribute(
+        await Auth.currentAuthenticatedUser(),
+        'email'
+      );
+      setShowDeleteModal(false);
+      setShowVerificationModal(true);
+    } catch (error: any) {
+      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+    }
+  };
+
+  const handleVerifyAndDelete = async () => {
+    if (!verificationCode) {
+      Alert.alert('오류', '인증 코드를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      
+      // 현재 로그인된 사용자 정보 가져오기
+      const currentUser = await Auth.currentAuthenticatedUser();
+      const email = currentUser.attributes.email;
+      
+      // 이메일 인증 코드 확인
+      await Auth.verifyUserAttributeSubmit(
+        currentUser,
+        'email',
+        verificationCode
+      );
+
+      // 회원탈퇴 API 호출
+      const response = await fetch(
+        'https://j0jnhscmhk.execute-api.ap-northeast-2.amazonaws.com/default/deleteUserProfile',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert('회원탈퇴 완료', '회원탈퇴가 완료되었습니다.', [
+          {
+            text: '확인',
+            onPress: async () => {
+              await Auth.signOut();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            },
+          },
+        ]);
+      } else {
+        throw new Error(data.message || '회원탈퇴 실패');
+      }
+    } catch (error: any) {
+      Alert.alert('오류', error.message || '회원탈퇴 중 오류가 발생했습니다.');
+    } finally {
+      setIsVerifying(false);
+      setShowVerificationModal(false);
+    }
+  };
+
   const NavigationButton = ({ title, icon, onPress }: { title: string; icon: string; onPress: () => void }) => (
     <TouchableOpacity style={styles.navButton} onPress={onPress}>
       <Text style={styles.navButtonIcon}>{icon}</Text>
@@ -148,7 +237,100 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
         >
           <Text style={styles.editButtonText}>프로필 수정</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={() => setShowDeleteModal(true)}
+        >
+          <Text style={styles.deleteButtonText}>회원탈퇴</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* 비밀번호 입력 모달 */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>회원탈퇴</Text>
+            <Text style={styles.modalText}>
+              정말 탈퇴하시겠습니까?{'\n'}
+              탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
+            </Text>
+            <TextInput
+              style={[styles.modalInput, { color: '#222' }]}
+              placeholder="비밀번호를 입력하세요"
+              placeholderTextColor="#222"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setPassword('');
+                }}
+              >
+                <Text style={styles.modalButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleDeleteAccount}
+              >
+                <Text style={styles.modalButtonText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 인증 코드 입력 모달 */}
+      <Modal
+        visible={showVerificationModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>이메일 인증</Text>
+            <Text style={styles.modalText}>
+              이메일로 발송된 인증 코드를 입력해주세요.
+            </Text>
+            <TextInput
+              style={[styles.modalInput, { color: '#222' }]}
+              placeholder="인증 코드를 입력하세요"
+              placeholderTextColor="#222"
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+              keyboardType="number-pad"
+            />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowVerificationModal(false);
+                  setVerificationCode('');
+                }}
+              >
+                <Text style={styles.modalButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleVerifyAndDelete}
+                disabled={isVerifying}
+              >
+                <Text style={styles.modalButtonText}>
+                  {isVerifying ? '처리중...' : '확인'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -212,6 +394,74 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalInput: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  confirmButton: {
+    backgroundColor: '#FF3B30',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default MyPageScreen;

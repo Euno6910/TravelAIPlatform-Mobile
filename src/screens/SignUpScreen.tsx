@@ -112,7 +112,7 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
 
     try {
       await Auth.confirmSignUp(email, verificationCode);
-      Alert.alert('회원가입 완료', '바람길에 오신 것을 환영합니다!', [
+      Alert.alert('회원가입 완료', 'WINDROAD에 오신 것을 환영합니다!', [
         {
           text: '로그인하기',
           onPress: () => navigation.navigate('Login')
@@ -143,7 +143,7 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
           </View>
 
           <View style={styles.logoContainer}>
-            <Text style={styles.logo}>바람길</Text>
+            <Text style={styles.logo}>WINDROAD</Text>
             <Text style={styles.subtitle}>AI와 함께하는 스마트한 여행 계획</Text>
           </View>
 
@@ -207,6 +207,9 @@ const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
                     maxLength={13}
+                    onFocus={() => {
+                      if (!phoneNumber) setPhoneNumber('+8210');
+                    }}
                   />
                 </View>
 
