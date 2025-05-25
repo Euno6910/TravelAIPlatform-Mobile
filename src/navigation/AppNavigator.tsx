@@ -18,6 +18,7 @@ import ManualPlanScreen from '../screens/ManualPlanScreen';
 import FlightSearchScreen from '../screens/FlightSearchScreen';
 import EditScheduleScreen from '../screens/EditScheduleScreen';
 import HotelSearchScreen from '../screens/HotelSearchScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -81,6 +82,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="MyPage" component={MyPageScreen} />
         <Stack.Screen name="PlanCreation" component={PlanCreationScreen} />
         <Stack.Screen name="PlanResult" component={PlanResultScreen} />

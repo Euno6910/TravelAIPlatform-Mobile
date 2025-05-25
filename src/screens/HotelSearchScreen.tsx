@@ -49,8 +49,8 @@ const HotelSearchScreen = () => {
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [city, setCity] = useState('도쿄');
-  const [checkin, setCheckin] = useState('2025-05-22');
-  const [checkout, setCheckout] = useState('2025-05-23');
+  const [checkin, setCheckin] = useState('');
+  const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [showCheckinCalendar, setShowCheckinCalendar] = useState(false);
