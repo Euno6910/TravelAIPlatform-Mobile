@@ -80,6 +80,10 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
 
   useEffect(() => {
     fetchDetailedPlan();
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchDetailedPlan();
+    });
+    return unsubscribe;
   }, [planId]);
 
   const fetchDetailedPlan = async () => {
@@ -440,6 +444,37 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
               {expandedHotel[`accmo-${index}`] && summary}
             </View>
           ))}
+
+          {/* 결제 완료 뱃지: paid_plan=1일 때만 노출 */}
+          {detailedPlan.plan?.paid_plan === 1 && (
+            <View style={{
+              backgroundColor: '#e3f2fd',
+              borderRadius: 8,
+              alignItems: 'center',
+              paddingVertical: 10,
+              marginBottom: 18,
+              marginTop: 4,
+            }}>
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16 }}>결제 완료</Text>
+            </View>
+          )}
+
+          {/* 결제하기 버튼: 미결제(paid_plan=0)일 때만 노출 */}
+          {detailedPlan.plan?.paid_plan === 0 && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#1E88E5',
+                padding: 14,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 18,
+                marginTop: 4,
+              }}
+              onPress={() => navigation.navigate('TravelCart', { plan: detailedPlan.plan })}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>결제하기</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.scheduleInfo}>
             <Text style={styles.destination}>{title}</Text>

@@ -6,37 +6,94 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { RouteProp } from '@react-navigation/native';
+import { Auth } from 'aws-amplify';
 
 //마이페이지 - 장바구니
 type TravelCartScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'TravelCart'>;
+  route: RouteProp<RootStackParamList, 'TravelCart'>;
 };
 
-const TravelCartScreen: React.FC<TravelCartScreenProps> = ({ navigation }) => {
-  // 임시 더미 데이터
-  const savedPlans = [
-    {
-      id: '1',
-      destination: '도쿄',
-      date: '2024-05-15 ~ 2024-05-20',
-      status: '저장됨',
-    },
-    {
-      id: '2',
-      destination: '파리',
-      date: '2024-06-10 ~ 2024-06-17',
-      status: '임시저장',
-    },
-    {
-      id: '3',
-      destination: '방콕',
-      date: '2024-07-01 ~ 2024-07-05',
-      status: '저장됨',
-    },
-  ];
+const TravelCartScreen: React.FC<TravelCartScreenProps> = ({ navigation, route }) => {
+  // plan 객체를 navigation param으로 받음
+  const plan = (route.params as any)?.plan;
+
+  // 항공권/호텔 정보 추출
+  let flight = null;
+  let hotel = null;
+  let flightPrice = 0;
+  let hotelPrice = 0;
+  if (plan) {
+    // 1. flight_info_1, flight_info_2 ... (문자열 JSON)
+    const flightInfos = Object.keys(plan)
+      .filter(key => key.startsWith('flight_info_'))
+      .map(key => {
+        try { return JSON.parse(plan[key]); } catch { return null; }
+      })
+      .filter(Boolean);
+    // 2. 기존 flightInfos 배열도 병합
+    if (Array.isArray(plan.flightInfos)) flightInfos.push(...plan.flightInfos);
+    if (Array.isArray(plan.flight_info)) flightInfos.push(...plan.flight_info);
+    if (flightInfos.length > 0) {
+      flight = flightInfos[0];
+      flightPrice = Number(flight?.price?.grandTotal || 0);
+    }
+    // 3. accmo_info_1, accmo_info_2 ... (문자열 JSON)
+    const accommodationInfos = Object.keys(plan)
+      .filter(key => key.startsWith('accmo_info_'))
+      .map(key => {
+        try { return JSON.parse(plan[key]); } catch { return null; }
+      })
+      .filter(Boolean);
+    // 4. 기존 accommodationInfos 배열도 병합
+    if (Array.isArray(plan.accommodationInfos)) accommodationInfos.push(...plan.accommodationInfos);
+    if (Array.isArray(plan.accmo_info)) accommodationInfos.push(...plan.accmo_info);
+    if (accommodationInfos.length > 0) {
+      hotel = accommodationInfos[0]?.hotel || accommodationInfos[0];
+      hotelPrice = Number((hotel?.price || '0').toString().replace(/[^\d]/g, ''));
+    }
+  }
+  const totalPrice = flightPrice + hotelPrice;
+
+  // 결제 처리 함수
+  const handlePayment = async () => {
+    try {
+      const session = await Auth.currentSession();
+      const token = session.getIdToken().getJwtToken();
+      const planId = plan.plan_id || plan.planId || plan.id;
+      const response = await fetch(
+        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            plan_id: planId,
+            update_type: 'paid_plan',
+            paid_plan: 1
+          })
+        }
+      );
+      const result = await response.json();
+      if (result.success) {
+        Alert.alert('결제 완료', '결제가 성공적으로 처리되었습니다.', [
+          { text: '확인', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('결제 실패', result.message || '결제에 실패했습니다.');
+      }
+    } catch (e: any) {
+      Alert.alert('오류', e.message || '결제 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -44,33 +101,55 @@ const TravelCartScreen: React.FC<TravelCartScreenProps> = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>여행 계획 보관함</Text>
+        <Text style={styles.headerTitle}>여행 계획 결제</Text>
         <View style={styles.placeholderView} />
       </View>
 
       <ScrollView style={styles.content}>
-        {savedPlans.map((plan) => (
-          <TouchableOpacity
-            key={plan.id}
-            style={styles.planCard}
-            onPress={() => {
-              // 저장된 계획 상세 보기 구현 예정
-              console.log('Plan details:', plan);
-            }}
-          >
-            <View style={styles.planInfo}>
-              <Text style={styles.destination}>{plan.destination}</Text>
-              <Text style={styles.date}>{plan.date}</Text>
-              <View style={[
-                styles.statusBadge,
-                plan.status === '저장됨' ? styles.savedStatus : styles.tempStatus
-              ]}>
-                <Text style={styles.statusText}>{plan.status}</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {/* 항공권 정보 카드 */}
+        {flight && (
+          <View style={{ backgroundColor: '#f0f8ff', borderRadius: 8, padding: 15, marginBottom: 18 }}>
+            <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>✈️ 항공권 정보</Text>
+            <Text style={{ color: '#333', fontSize: 15, marginBottom: 2 }}>
+              {flight.itineraries?.[0]?.segments?.[0]?.departure?.iataCode} → {flight.itineraries?.[0]?.segments?.[0]?.arrival?.iataCode}
+            </Text>
+            <Text style={{ color: '#666', fontSize: 14, marginBottom: 2 }}>
+              출발: {flight.itineraries?.[0]?.segments?.[0]?.departure?.at?.slice(0, 16)}
+            </Text>
+            {flight.price?.grandTotal && (
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16, marginTop: 6 }}>
+                {Number(flight.price.grandTotal).toLocaleString()}원
+              </Text>
+            )}
+          </View>
+        )}
+        {/* 호텔 정보 카드 */}
+        {hotel && (
+          <View style={{ backgroundColor: '#fff', borderRadius: 8, padding: 15, marginBottom: 18, elevation: 2 }}>
+            <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>🏨 호텔 정보</Text>
+            <Text style={{ color: '#333', fontSize: 15, marginBottom: 2 }}>{hotel.hotel_name}</Text>
+            <Text style={{ color: '#666', fontSize: 14, marginBottom: 2 }}>{hotel.address}</Text>
+            {hotel.price && (
+              <Text style={{ color: '#1E88E5', fontWeight: 'bold', fontSize: 16, marginTop: 6 }}>
+                {hotel.price}
+              </Text>
+            )}
+          </View>
+        )}
       </ScrollView>
+      {/* 결제하기 버튼 */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: '#1E88E5',
+          padding: 18,
+          borderRadius: 8,
+          alignItems: 'center',
+          margin: 18,
+        }}
+        onPress={handlePayment}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>총 {totalPrice.toLocaleString()}원 결제하기</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };

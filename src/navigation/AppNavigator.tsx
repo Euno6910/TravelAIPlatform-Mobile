@@ -39,7 +39,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   PlanCreation: undefined;
   MyPage: undefined;
-  TravelCart: undefined;
+  TravelCart: { plan?: any };
   TravelSchedule: any;
   DetailedSchedule: { planId: string };
   PlanResult: {
