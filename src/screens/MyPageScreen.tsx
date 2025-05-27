@@ -365,7 +365,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
               style={[styles.modalButton, styles.cancelButton]}
               onPress={() => setShowScheduleModal(false)}
             >
-              <Text style={styles.modalButtonText}>취소</Text>
+              <Text style={[styles.modalButtonText, { color: '#222' }]}>취소</Text>
             </TouchableOpacity>
           </View>
         </View>

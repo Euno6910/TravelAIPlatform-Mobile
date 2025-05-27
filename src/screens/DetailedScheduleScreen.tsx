@@ -134,6 +134,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   const [expandedDayIdxMap, setExpandedDayIdxMap] = useState<{ [dayKey: string]: boolean }>({});
   const [expandedFlight, setExpandedFlight] = useState<{ [flightKey: string]: boolean }>({});
   const [expandedHotel, setExpandedHotel] = useState<{ [hotelKey: string]: boolean }>({});
+  const [notiRegistered, setNotiRegistered] = useState(false);
 
   useEffect(() => {
     fetchDetailedPlan();
@@ -240,7 +241,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   };
   
   useEffect(() => {
-    if (!travelInfo || !daysArray.length) return;
+    if (!travelInfo || !daysArray.length || notiRegistered) return;
 
     const setupNotifications = async () => {
       const hasPermission = await requestNotificationPermission();
@@ -276,13 +277,14 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           }
         });
       });
+      setNotiRegistered(true);
     };
 
     setupNotifications();
-  }, [travelInfo, daysArray]);
+  }, [daysArray]);
 
   // 날씨 정보 가져오기
-  const fetchWeatherData = async (lat: number, lon: number) => {
+  const fetchWeatherData = async (lat: number, lng: number) => {
     setWeatherLoading(true);
     setWeatherError(null);
     try {
@@ -293,7 +295,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ lat, lon }),
+          body: JSON.stringify({ lat, lon: lng }),
         }
       );
 
@@ -349,7 +351,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   };
 
   // 날씨 아이콘 선택
-  const getWeatherIcon = (weatherMain: string) => {
+  const getWeatherIcon = (weatherMain: string, weatherDescription: string) => {
     switch (weatherMain.toLowerCase()) {
       case 'clear': return '☀️';
       case 'clouds': return '☁️';
@@ -714,7 +716,17 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             {/* 현재 날씨 정보 표시 */}
             <View style={styles.weatherContainer}>
               <Text style={{ color: '#888', fontSize: 12, textAlign: 'center', marginBottom: 2 }}>※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.</Text>
-              <Text style={styles.weatherText}>{getWeatherText()}</Text>
+              {weatherData && weatherData.forecasts.length > 0 && (
+                <Text style={styles.weatherText}>
+                  {getWeatherIcon(
+                    weatherData.forecasts[0].weather[0].main,
+                    weatherData.forecasts[0].weather[0].description
+                  )} {weatherData.city.name} 현재 날씨: {weatherData.forecasts[0].main.temp}°C, {weatherData.forecasts[0].weather[0].description}
+                </Text>
+              )}
+              {(!weatherData || weatherData.forecasts.length === 0) && (
+                <Text style={styles.weatherText}>{getWeatherText()}</Text>
+              )}
             </View>
 
             {status && (
@@ -740,7 +752,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
                     {weather && (
                       <View style={styles.dayWeather}>
                         <Text style={styles.dayWeatherText}>
-                          {getWeatherIcon(weather.weather[0].main)} {weather.main.temp}°C
+                          {getWeatherIcon(weather.weather[0].main, weather.weather[0].description)} {weather.main.temp}°C
                         </Text>
                         <Text style={styles.dayWeatherDesc}>{weather.weather[0].description}</Text>
                       </View>

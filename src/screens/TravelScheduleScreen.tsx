@@ -225,54 +225,40 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
     return forecast;
   };
 
-  // 날씨 아이콘 선택
+  // 날씨 아이콘 선택 (한글+영문 description 모두 대응)
   const getWeatherIcon = (weatherMain: string, description: string) => {
     const desc = description.toLowerCase();
-    
-    // 맑음 관련
-    if (weatherMain.toLowerCase() === 'clear') {
-      return '☀️'; // 맑음
-    }
-    
-    // 구름 관련
+    // 맑음
+    if (weatherMain.toLowerCase() === 'clear') return '☀️';
+    // 구름
     if (weatherMain.toLowerCase() === 'clouds') {
-      if (desc.includes('few clouds')) return '🌤️'; // 구름 조금
-      if (desc.includes('scattered clouds')) return '⛅'; // 구름 낀
-      if (desc.includes('broken clouds') || desc.includes('overcast clouds')) return '☁️'; // 흐림
+      if (desc.includes('few clouds') || desc.includes('구름 조금')) return '🌤️';
+      if (desc.includes('scattered clouds')) return '⛅';
+      if (desc.includes('broken clouds') || desc.includes('overcast clouds') || desc.includes('흐림')) return '☁️';
+      return '⛅';
     }
-    
-    // 비 관련
+    // 비
     if (weatherMain.toLowerCase() === 'rain') {
-      if (desc.includes('light rain')) return '🌦️'; // 가벼운 비
-      if (desc.includes('moderate rain')) return '🌧️'; // 보통 비
-      if (desc.includes('heavy rain')) return '⛈️'; // 강한 비
-      if (desc.includes('shower rain')) return '🌧️'; // 소나기
+      if (desc.includes('light rain') || desc.includes('실 비')) return '🌦️';
+      if (desc.includes('moderate rain') || desc.includes('보통 비')) return '🌧️';
+      if (desc.includes('heavy rain') || desc.includes('강한 비')) return '⛈️';
+      if (desc.includes('shower rain') || desc.includes('소나기')) return '🌧️';
+      return '🌧️';
     }
-    
-    // 눈 관련
+    // 눈
     if (weatherMain.toLowerCase() === 'snow') {
-      if (desc.includes('light snow')) return '🌨️'; // 가벼운 눈
-      if (desc.includes('heavy snow')) return '❄️'; // 강한 눈
-      if (desc.includes('sleet')) return '🌨️'; // 진눈깨비
+      if (desc.includes('light snow') || desc.includes('가벼운 눈')) return '🌨️';
+      if (desc.includes('heavy snow') || desc.includes('강한 눈')) return '❄️';
+      if (desc.includes('sleet') || desc.includes('진눈깨비')) return '🌨️';
+      return '❄️';
     }
-    
     // 천둥번개
-    if (weatherMain.toLowerCase() === 'thunderstorm') {
-      if (desc.includes('light thunderstorm')) return '⛈️'; // 약한 천둥번개
-      if (desc.includes('heavy thunderstorm')) return '🌩️'; // 강한 천둥번개
-    }
-    
-    // 안개/연무
-    if (weatherMain.toLowerCase() === 'mist' || weatherMain.toLowerCase() === 'fog') {
-      return '🌫️';
-    }
-    
+    if (weatherMain.toLowerCase() === 'thunderstorm') return '⛈️';
     // 이슬비
-    if (weatherMain.toLowerCase() === 'drizzle') {
-      return '🌦️';
-    }
-    
-    return '🌤️'; // 기본값
+    if (weatherMain.toLowerCase() === 'drizzle') return '🌦️';
+    // 안개/연무
+    if (weatherMain.toLowerCase() === 'mist' || weatherMain.toLowerCase() === 'fog') return '🌫️';
+    return '🌤️';
   };
 
   // 일정 공유하기
@@ -566,7 +552,17 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                   {/* 현재 날씨 정보 표시 */}
                   <View style={styles.weatherContainer}>
                     <Text style={{ color: '#888', fontSize: 12, textAlign: 'center', marginBottom: 2 }}>※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.</Text>
-                    <Text style={styles.weatherText}>{getWeatherText()}</Text>
+                    {weatherData && weatherData.forecasts.length > 0 && (
+                      <Text style={styles.weatherText}>
+                        {getWeatherIcon(
+                          weatherData.forecasts[0].weather[0].main,
+                          weatherData.forecasts[0].weather[0].description
+                        )} {getWeatherText()}
+                      </Text>
+                    )}
+                    {(!weatherData || weatherData.forecasts.length === 0) && (
+                      <Text style={styles.weatherText}>{getWeatherText()}</Text>
+                    )}
                   </View>
 
                   <View style={[
