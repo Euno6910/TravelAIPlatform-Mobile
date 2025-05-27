@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Share,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -404,6 +405,76 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   );
   const hasPaymentTarget = hasFlight || hasHotel;
 
+  const sharePlan = async () => {
+    if (!travelInfo && !detailedPlan) return;
+
+    try {
+      const title = travelInfo?.title || detailedPlan?.plan?.name || '제목 없음';
+      const destination = travelInfo?.destination || '';
+      const startDate = travelInfo?.days?.[0]?.date || '';
+      const endDate = travelInfo?.days?.[travelInfo?.days?.length - 1]?.date || '';
+      
+      let shareText = `✈️ 여행 일정 공유\n\n`;
+      shareText += `제목: ${title}\n`;
+      if (destination) shareText += `여행지: ${destination}\n`;
+      if (startDate && endDate) shareText += `기간: ${startDate} ~ ${endDate}\n\n`;
+      
+      // 항공 정보
+      if (detailedPlan?.flightInfos && detailedPlan.flightInfos.length > 0) {
+        shareText += `✈️ 항공 정보\n`;
+        detailedPlan.flightInfos.forEach((flight: any, index: number) => {
+          if (flight?.itineraries?.[0]) {
+            const outbound = flight.itineraries[0];
+            shareText += `출국: ${outbound.segments[0]?.departure?.iataCode} → ${outbound.segments[0]?.arrival?.iataCode}\n`;
+            shareText += `날짜: ${outbound.segments[0]?.departure?.at?.slice(0, 10)}\n`;
+            shareText += `항공사: ${outbound.segments[0]?.carrierCode} ${outbound.segments[0]?.number}\n\n`;
+          }
+          if (flight?.itineraries?.[1]) {
+            const inbound = flight.itineraries[1];
+            shareText += `귀국: ${inbound.segments[0]?.departure?.iataCode} → ${inbound.segments[0]?.arrival?.iataCode}\n`;
+            shareText += `날짜: ${inbound.segments[0]?.departure?.at?.slice(0, 10)}\n`;
+            shareText += `항공사: ${inbound.segments[0]?.carrierCode} ${inbound.segments[0]?.number}\n\n`;
+          }
+        });
+      }
+
+      // 호텔 정보
+      if (detailedPlan?.accommodationInfos && detailedPlan.accommodationInfos.length > 0) {
+        shareText += `🏨 호텔 정보\n`;
+        detailedPlan.accommodationInfos.forEach((accmo: any) => {
+          if (accmo?.hotel) {
+            shareText += `호텔명: ${accmo.hotel.hotel_name}\n`;
+            shareText += `주소: ${accmo.hotel.address}\n`;
+            if (accmo.hotel.checkin) shareText += `체크인: ${accmo.hotel.checkin}\n`;
+            if (accmo.hotel.checkout) shareText += `체크아웃: ${accmo.hotel.checkout}\n\n`;
+          }
+        });
+      }
+
+      // 일정 정보
+      if (daysArray.length > 0) {
+        shareText += `📅 상세 일정\n`;
+        daysArray.forEach((day: any) => {
+          const date = day.date || extractDateFromTitle(day.title, getBaseYear(daysArray));
+          shareText += `\n[${date}] ${getTitleWithoutDate(day.title)}\n`;
+          if (day.schedules) {
+            day.schedules.forEach((schedule: any) => {
+              shareText += `- ${schedule.time || ''} ${schedule.name || ''}\n`;
+              if (schedule.notes) shareText += `  ${schedule.notes}\n`;
+            });
+          }
+        });
+      }
+
+      await Share.share({
+        message: shareText,
+        title: title
+      });
+    } catch (error) {
+      Alert.alert('공유 실패', '일정을 공유하는데 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -451,7 +522,9 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>일정 상세</Text>
-        <View style={styles.placeholderView} />
+        <TouchableOpacity onPress={sharePlan} style={styles.shareButton}>
+          <Text style={styles.shareButtonText}>공유</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
@@ -535,9 +608,9 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             <View key={idx} style={styles.dayBlock}>
               <View style={styles.dayHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.dayTitle}>{
-                    day.date || extractDateFromTitle(day.title, getBaseYear(daysArray)) || ''
-                  }</Text>
+                  <Text style={styles.dayTitle}>
+                    {day.date || extractDateFromTitle(day.title, getBaseYear(daysArray)) || ''}
+                  </Text>
                   <Text style={styles.daySubTitle}>{getTitleWithoutDate(day.title)}</Text>
                 </View>
                 <TouchableOpacity
@@ -1033,6 +1106,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1E88E5',
+  },
+  shareButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#1E88E5',
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
