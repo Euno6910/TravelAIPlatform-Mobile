@@ -13,12 +13,14 @@ import MyPageScreen from '../screens/MyPageScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import TravelCartScreen from '../screens/TravelCartScreen';
 import TravelScheduleScreen from '../screens/TravelScheduleScreen';
+import DetailedScheduleScreen from '../screens/DetailedScheduleScreen';
 import MapScreen from '../screens/MapScreen';
 import ManualPlanScreen from '../screens/ManualPlanScreen';
 import FlightSearchScreen from '../screens/FlightSearchScreen';
 import EditScheduleScreen from '../screens/EditScheduleScreen';
 import HotelSearchScreen from '../screens/HotelSearchScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import AllSchedulesScreen from '../screens/AllSchedulesScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -37,7 +39,8 @@ export type RootStackParamList = {
   PlanCreation: undefined;
   MyPage: undefined;
   TravelCart: undefined;
-  TravelSchedule: { plans: any[]; flightInfo?: any };
+  TravelSchedule: any;
+  DetailedSchedule: { planId: string };
   PlanResult: {
     destination: string;
     startDate: string;
@@ -66,6 +69,7 @@ export type RootStackParamList = {
     checkIn?: string;
     checkOut?: string;
   };
+  AllSchedules: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -89,11 +93,13 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="TravelCart" component={TravelCartScreen} />
         <Stack.Screen name="TravelSchedule" component={TravelScheduleScreen} />
+        <Stack.Screen name="DetailedSchedule" component={DetailedScheduleScreen} />
         <Stack.Screen name="Map" component={MapScreen} />
         <Stack.Screen name="ManualPlan" component={ManualPlanScreen} />
         <Stack.Screen name="FlightSearch" component={FlightSearchScreen} />
         <Stack.Screen name="EditSchedule" component={EditScheduleScreen} />
         <Stack.Screen name="HotelSearch" component={HotelSearchScreen} options={{ title: '호텔 검색' }} />
+        <Stack.Screen name="AllSchedules" component={AllSchedulesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

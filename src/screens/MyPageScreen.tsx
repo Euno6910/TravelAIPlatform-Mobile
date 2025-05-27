@@ -25,6 +25,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
   const [userInfo, setUserInfo] = useState<UserAttributes | null>(null);
   const [travelPlans, setTravelPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   
   // 회원탈퇴 관련 상태
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -179,6 +180,20 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
     }
   };
 
+  const handleSchedulePress = () => {
+    setShowScheduleModal(true);
+  };
+
+  const handleAISchedule = () => {
+    setShowScheduleModal(false);
+    loadTravelPlans();
+  };
+
+  const handleAllSchedule = () => {
+    setShowScheduleModal(false);
+    navigation.navigate('AllSchedules');
+  };
+
   const NavigationButton = ({ title, icon, onPress }: { title: string; icon: string; onPress: () => void }) => (
     <TouchableOpacity style={styles.navButton} onPress={onPress}>
       <Text style={styles.navButtonIcon}>{icon}</Text>
@@ -222,7 +237,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
           <NavigationButton
             title="일정 관리"
             icon="📅"
-            onPress={loadTravelPlans}
+            onPress={handleSchedulePress}
           />
           <NavigationButton
             title="장바구니"
@@ -328,6 +343,37 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 일정관리 옵션 모달 */}
+      <Modal
+        visible={showScheduleModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>일정 관리</Text>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.scheduleButton]}
+              onPress={handleAISchedule}
+            >
+              <Text style={styles.modalButtonText}>AI 일정 관리</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.scheduleButton]}
+              onPress={handleAllSchedule}
+            >
+              <Text style={styles.modalButtonText}>모든 일정 관리</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowScheduleModal(false)}
+            >
+              <Text style={styles.modalButtonText}>취소</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -461,6 +507,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  scheduleButton: {
+    backgroundColor: '#1E88E5',
+    marginBottom: 10,
   },
 });
 
