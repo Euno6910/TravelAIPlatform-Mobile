@@ -21,6 +21,7 @@ import EditScheduleScreen from '../screens/EditScheduleScreen';
 import HotelSearchScreen from '../screens/HotelSearchScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AllSchedulesScreen from '../screens/AllSchedulesScreen';
+import PlanEditScreen from '../screens/PlanEditScreen';
 
 // UserAttributes 타입 정의
 export type UserAttributes = {
@@ -70,6 +71,7 @@ export type RootStackParamList = {
     checkOut?: string;
   };
   AllSchedules: undefined;
+  PlanEdit: { plan: any };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -100,6 +102,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="EditSchedule" component={EditScheduleScreen} />
         <Stack.Screen name="HotelSearch" component={HotelSearchScreen} options={{ title: '호텔 검색' }} />
         <Stack.Screen name="AllSchedules" component={AllSchedulesScreen} />
+        <Stack.Screen name="PlanEdit" component={PlanEditScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

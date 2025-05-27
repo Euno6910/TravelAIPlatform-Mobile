@@ -498,7 +498,9 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           <TouchableOpacity 
             style={[styles.actionButton, styles.editButton]}
             onPress={() => {
-              Alert.alert("알림", "수정 기능은 준비 중입니다.");
+              navigation.navigate('PlanEdit', {
+                plan: detailedPlan.plan
+              });
             }}
           >
             <Text style={[styles.actionButtonText, styles.editButtonText]}>수정</Text>
