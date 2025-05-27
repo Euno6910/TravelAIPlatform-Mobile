@@ -393,6 +393,17 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
     );
   };
 
+  // 호텔/항공 정보가 하나라도 있으면 결제 UI 노출 (null 체크 포함)
+  const hasFlight = !!detailedPlan && (
+    (Array.isArray(detailedPlan.flightInfos) && detailedPlan.flightInfos.length > 0) ||
+    (detailedPlan.plan && Object.keys(detailedPlan.plan).some(key => key.startsWith('flight_info_')))
+  );
+  const hasHotel = !!detailedPlan && (
+    (Array.isArray(detailedPlan.accommodationInfos) && detailedPlan.accommodationInfos.length > 0) ||
+    (detailedPlan.plan && Object.keys(detailedPlan.plan).some(key => key.startsWith('accmo_info_')))
+  );
+  const hasPaymentTarget = hasFlight || hasHotel;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -475,8 +486,8 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             </View>
           ))}
 
-          {/* 결제 완료 뱃지: paid_plan=1일 때만 노출 */}
-          {detailedPlan.plan?.paid_plan === 1 && (
+          {/* 결제 완료 뱃지: 호텔/항공 정보가 하나라도 있고 paid_plan=1일 때만 노출 */}
+          {hasPaymentTarget && detailedPlan && detailedPlan.plan?.paid_plan === 1 && (
             <View style={{
               backgroundColor: '#e3f2fd',
               borderRadius: 8,
@@ -489,8 +500,8 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             </View>
           )}
 
-          {/* 결제하기 버튼: 미결제(paid_plan=0)일 때만 노출 */}
-          {detailedPlan.plan?.paid_plan === 0 && (
+          {/* 결제하기 버튼: 호텔/항공 정보가 하나라도 있고 미결제(paid_plan=0)일 때만 노출 */}
+          {hasPaymentTarget && detailedPlan && detailedPlan.plan?.paid_plan === 0 && (
             <TouchableOpacity
               style={{
                 backgroundColor: '#1E88E5',
