@@ -240,18 +240,11 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
             onPress={handleSchedulePress}
           />
           <NavigationButton
-            title="장바구니"
-            icon="🛒"
-            onPress={() => navigation.navigate('TravelCart')}
+            title="프로필 수정"
+            icon="👤"
+            onPress={() => navigation.navigate('EditProfile', { userInfo: userInfo! })}
           />
         </View>
-
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => navigation.navigate('EditProfile', { userInfo: userInfo! })}
-        >
-          <Text style={styles.editButtonText}>프로필 수정</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.deleteButton}
@@ -432,14 +425,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
-  editButton: {
-    backgroundColor: '#1E88E5',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteButton: {
     backgroundColor: '#FF3B30',
     padding: 15,
