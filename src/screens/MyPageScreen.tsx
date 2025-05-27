@@ -360,13 +360,13 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
               style={[styles.modalButton, styles.scheduleButton]}
               onPress={handleAISchedule}
             >
-              <Text style={styles.modalButtonText}>AI 일정 관리</Text>
+              <Text style={styles.modalButtonText}>AI가 만든 일정 관리</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.modalButton, styles.scheduleButton]}
               onPress={handleAllSchedule}
             >
-              <Text style={styles.modalButtonText}>모든 일정 관리</Text>
+              <Text style={styles.modalButtonText}>저장한 일정 관리</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.modalButton, styles.cancelButton]}

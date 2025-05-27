@@ -32,6 +32,10 @@ const AllSchedulesScreen: React.FC<AllSchedulesScreenProps> = ({ navigation }) =
 
   useEffect(() => {
     fetchAllPlans();
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAllPlans();
+    });
+    return unsubscribe;
   }, []);
 
   const fetchAllPlans = async () => {

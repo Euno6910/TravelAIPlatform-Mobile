@@ -54,6 +54,17 @@ const openGoogleMaps = (lat?: number, lng?: number, location?: string, name?: st
   if (url) Linking.openURL(url);
 };
 
+// 삭제 후 부모 화면 새로고침을 위한 헬퍼
+function tryRefreshParent(navigation: any) {
+  // navigation.goBack() 전에 부모의 focus 이벤트에 새로고침 트리거
+  if (navigation.canGoBack()) {
+    const parent = navigation.getParent && navigation.getParent();
+    if (parent && parent.emit) {
+      parent.emit('refresh');
+    }
+  }
+}
+
 const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigation, route }) => {
   const { planId } = route.params;
   const [loading, setLoading] = useState(true);
@@ -447,7 +458,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           {daysArray.map((day, idx) => (
             <View key={idx} style={styles.dayBlock}>
               <View style={styles.dayHeader}>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.dayTitle}>{day.date}</Text>
                   <Text style={styles.daySubTitle}>{day.title}</Text>
                 </View>
@@ -507,8 +518,48 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => {
-              Alert.alert("알림", "삭제 기능은 준비 중입니다.");
+            onPress={async () => {
+              Alert.alert(
+                "삭제 확인",
+                "정말로 이 여행 계획을 삭제하시겠습니까?",
+                [
+                  { text: "취소", style: "cancel" },
+                  { text: "삭제", style: "destructive", onPress: async () => {
+                      try {
+                        const session = await Auth.currentSession();
+                        const token = session.getIdToken().getJwtToken();
+                        const response = await fetch(
+                          'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/deleteplan',
+                          {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ plan_id: detailedPlan.plan.plan_id })
+                          }
+                        );
+                        const result = await response.json();
+                        if (result.success) {
+                          Alert.alert("삭제 완료", "여행 계획이 성공적으로 삭제되었습니다.", [
+                            { text: "확인", onPress: () => {
+                                tryRefreshParent(navigation);
+                                navigation.goBack();
+                              }
+                            }
+                          ]);
+                        } else {
+                          const err = result.message || "삭제에 실패했습니다.";
+                          Alert.alert("삭제 실패", err);
+                        }
+                      } catch (e) {
+                        const err = e as any;
+                        Alert.alert("오류", err.message || "삭제 중 오류가 발생했습니다.");
+                      }
+                    }
+                  }
+                ]
+              );
             }}
           >
             <Text style={[styles.actionButtonText, styles.deleteButtonText]}>삭제</Text>
@@ -655,6 +706,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 6,
+    marginLeft: 16,
   },
   expandButtonText: {
     color: '#1E88E5',

@@ -380,16 +380,7 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                     style={[styles.actionButton, styles.editButton]}
                     onPress={() => navigation.navigate('EditSchedule', { plan })}
                   >
-                    <Text style={[styles.actionButtonText, styles.editButtonText]}>수정</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => {
-                      // 일정 삭제 구현 예정
-                      console.log('Delete schedule:', travelInfo);
-                    }}
-                  >
-                    <Text style={[styles.actionButtonText, styles.deleteButtonText]}>삭제</Text>
+                    <Text style={[styles.actionButtonText, styles.editButtonText]}>수정하여 일정에 저장</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -488,12 +479,6 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: '#1E88E5',
     fontWeight: 'bold',
-  },
-  deleteButton: {
-    borderColor: '#FF5252',
-  },
-  deleteButtonText: {
-    color: '#FF5252',
   },
   dayBlock: {
     marginTop: 18,
