@@ -42,6 +42,29 @@ interface TravelInfo {
   [key: string]: any;
 }
 
+interface WeatherData {
+  city: {
+    name: string;
+    country: string;
+  };
+  forecasts: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      feels_like: number;
+      humidity: number;
+    };
+    weather: Array<{
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+    };
+  }>;
+}
+
 // 구글맵 검색 함수
 const openGoogleMaps = (lat?: number, lng?: number, location?: string, name?: string) => {
   let url = '';
@@ -104,6 +127,9 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   const [flightSummaries, setFlightSummaries] = useState<React.ReactNode[]>([]); 
   const [accmoSummaries, setAccmoSummaries] = useState<React.ReactNode[]>([]); 
   const [daysArray, setDaysArray] = useState<any[]>([]); // 일정 데이터를 저장할 새로운 상태 추가
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
 
   const [expandedDayIdxMap, setExpandedDayIdxMap] = useState<{ [dayKey: string]: boolean }>({});
   const [expandedFlight, setExpandedFlight] = useState<{ [flightKey: string]: boolean }>({});
@@ -254,6 +280,88 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
 
     setupNotifications();
   }, [travelInfo, daysArray]);
+
+  // 날씨 정보 가져오기
+  const fetchWeatherData = async (lat: number, lon: number) => {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      const response = await fetch(
+        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/weatherAPI',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ lat, lon }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('날씨 정보를 가져오는데 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setWeatherData(data);
+    } catch (error) {
+      setWeatherError('날씨 정보를 가져올 수 없습니다.');
+      console.error('날씨 정보 조회 실패:', error);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  // 첫 번째 일정의 위치 정보로 날씨 조회
+  useEffect(() => {
+    if (daysArray.length > 0 && daysArray[0].schedules?.length > 0) {
+      const firstSchedule = daysArray[0].schedules[0];
+      if (firstSchedule.lat && firstSchedule.lng) {
+        fetchWeatherData(firstSchedule.lat, firstSchedule.lng);
+      }
+    }
+  }, [daysArray]);
+
+  // 날씨 정보를 텍스트로 변환
+  const getWeatherText = () => {
+    if (weatherLoading) return '날씨 정보 로딩 중...';
+    if (weatherError) return '날씨 정보를 가져올 수 없습니다.';
+    if (!weatherData || !weatherData.forecasts.length) return '날씨 정보 없음';
+
+    const currentWeather = weatherData.forecasts[0];
+    return `${weatherData.city.name} 현재 날씨: ${currentWeather.main.temp}°C, ${currentWeather.weather[0].description}`;
+  };
+
+  // 날짜별 날씨 예보 가져오기
+  const getWeatherForDate = (date: string) => {
+    if (!weatherData || !weatherData.forecasts.length) return null;
+
+    // 날짜 형식 변환 (YYYY-MM-DD)
+    const targetDate = new Date(date);
+    const targetDateStr = targetDate.toISOString().split('T')[0];
+
+    // 해당 날짜의 날씨 예보 찾기
+    const forecast = weatherData.forecasts.find(f => {
+      const forecastDate = new Date(f.dt * 1000);
+      return forecastDate.toISOString().split('T')[0] === targetDateStr;
+    });
+
+    return forecast;
+  };
+
+  // 날씨 아이콘 선택
+  const getWeatherIcon = (weatherMain: string) => {
+    switch (weatherMain.toLowerCase()) {
+      case 'clear': return '☀️';
+      case 'clouds': return '☁️';
+      case 'rain': return '🌧️';
+      case 'snow': return '❄️';
+      case 'thunderstorm': return '⛈️';
+      case 'drizzle': return '🌦️';
+      case 'mist':
+      case 'fog': return '🌫️';
+      default: return '🌤️';
+    }
+  };
 
   const getStatus = (start?: string, end?: string) => {
     if (!start || !end) return '';
@@ -418,7 +526,15 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
       shareText += `제목: ${title}\n`;
       if (destination) shareText += `여행지: ${destination}\n`;
       if (startDate && endDate) shareText += `기간: ${startDate} ~ ${endDate}\n\n`;
-      
+
+      // 날씨 정보 추가
+      if (weatherData) {
+        shareText += `※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.\n`;
+        shareText += `🌤️ 현재 날씨 정보\n`;
+        shareText += `${weatherData.city.name} 현재 날씨: ${weatherData.forecasts[0].main.temp}°C\n`;
+        shareText += `${weatherData.forecasts[0].weather[0].description}\n\n`;
+      }
+
       // 항공 정보
       if (detailedPlan?.flightInfos && detailedPlan.flightInfos.length > 0) {
         shareText += `✈️ 항공 정보\n`;
@@ -594,6 +710,13 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             <Text style={styles.destination}>{title}</Text>
             {destination && <Text style={styles.date}>{destination}</Text>}
             {(startDate && endDate) && <Text style={styles.date}>{startDate} ~ {endDate}</Text>}
+            
+            {/* 현재 날씨 정보 표시 */}
+            <View style={styles.weatherContainer}>
+              <Text style={{ color: '#888', fontSize: 12, textAlign: 'center', marginBottom: 2 }}>※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.</Text>
+              <Text style={styles.weatherText}>{getWeatherText()}</Text>
+            </View>
+
             {status && (
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(status) }]}>{status}</Text>
@@ -604,49 +727,60 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             )}
           </View>
 
-          {daysArray.map((day, idx) => (
-            <View key={idx} style={styles.dayBlock}>
-              <View style={styles.dayHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dayTitle}>
-                    {day.date || extractDateFromTitle(day.title, getBaseYear(daysArray)) || ''}
-                  </Text>
-                  <Text style={styles.daySubTitle}>{getTitleWithoutDate(day.title)}</Text>
+          {daysArray.map((day, idx) => {
+            const date = day.date || extractDateFromTitle(day.title, getBaseYear(daysArray));
+            const weather = getWeatherForDate(date);
+            
+            return (
+              <View key={idx} style={styles.dayBlock}>
+                <View style={styles.dayHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dayTitle}>{date}</Text>
+                    <Text style={styles.daySubTitle}>{getTitleWithoutDate(day.title)}</Text>
+                    {weather && (
+                      <View style={styles.dayWeather}>
+                        <Text style={styles.dayWeatherText}>
+                          {getWeatherIcon(weather.weather[0].main)} {weather.main.temp}°C
+                        </Text>
+                        <Text style={styles.dayWeatherDesc}>{weather.weather[0].description}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.expandButton}
+                    onPress={() => setExpandedDayIdxMap(prev => ({
+                      ...prev,
+                      [idx]: prev[idx] === true ? false : true
+                    }))}
+                  >
+                    <Text style={styles.expandButtonText}>{expandedDayIdxMap[idx] ? '닫기' : '확대'}</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.expandButton}
-                  onPress={() => setExpandedDayIdxMap(prev => ({
-                    ...prev,
-                    [idx]: prev[idx] === true ? false : true
-                  }))}
-                >
-                  <Text style={styles.expandButtonText}>{expandedDayIdxMap[idx] ? '닫기' : '확대'}</Text>
-                </TouchableOpacity>
+                {expandedDayIdxMap[idx] && (
+                  <View>
+                    {day.schedules?.map((schedule: any, aIdx: number) => (
+                      <TouchableOpacity
+                        key={aIdx}
+                        style={styles.activityBlock}
+                        onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.activityText}>
+                          {schedule.time} - {schedule.name}
+                        </Text>
+                        {schedule.notes && (
+                          <Text style={styles.activityDesc}>{schedule.notes}</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                    {(!day.schedules || day.schedules.length === 0) && (
+                      <Text style={styles.noScheduleText}>스케줄 없음</Text>
+                    )}
+                  </View>
+                )}
               </View>
-              {expandedDayIdxMap[idx] && (
-                <View>
-                  {day.schedules?.map((schedule: any, aIdx: number) => (
-                    <TouchableOpacity
-                      key={aIdx}
-                      style={styles.activityBlock}
-                      onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.activityText}>
-                        {schedule.time} - {schedule.name}
-                      </Text>
-                      {schedule.notes && (
-                        <Text style={styles.activityDesc}>{schedule.notes}</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                  {(!day.schedules || day.schedules.length === 0) && (
-                    <Text style={styles.noScheduleText}>스케줄 없음</Text>
-                  )}
-                </View>
-              )}
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {typeof detailedPlan.plan?.plan_data === 'string' && !travelInfo.days && daysArray.length === 0 && (
@@ -1116,6 +1250,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  weatherContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  weatherText: {
+    color: '#1E88E5',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  dayWeather: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dayWeatherText: {
+    fontSize: 14,
+    color: '#1E88E5',
+    fontWeight: '500',
+  },
+  dayWeatherDesc: {
+    fontSize: 13,
+    color: '#666',
   },
 });
 

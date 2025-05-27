@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Linking,
   Image,
+  Share,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -32,6 +34,29 @@ const openGoogleMaps = (lat?: number, lng?: number, location?: string, name?: st
   }
   if (url) Linking.openURL(url);
 };
+
+interface WeatherData {
+  city: {
+    name: string;
+    country: string;
+  };
+  forecasts: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      feels_like: number;
+      humidity: number;
+    };
+    weather: Array<{
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+    };
+  }>;
+}
 
 const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation, route }) => {
   // 실제 데이터 사용
@@ -64,6 +89,9 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
   const [expandedDayIdxMap, setExpandedDayIdxMap] = useState<{ [planId: string]: number | null }>({});
   const [expandedFlight, setExpandedFlight] = useState<{ [planId: string]: boolean }>({});
   const [expandedHotel, setExpandedHotel] = useState<{ [planId: string]: boolean }>({});
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
 
   useEffect(() => {
     const setupNotifications = async () => {
@@ -118,6 +146,214 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
     };
     setupNotifications();
   }, [plans]);
+
+  // 날씨 정보 가져오기
+  const fetchWeatherData = async (lat: number, lon: number) => {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      const response = await fetch(
+        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/weatherAPI',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ lat, lon }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('날씨 정보를 가져오는데 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setWeatherData(data);
+    } catch (error) {
+      setWeatherError('날씨 정보를 가져올 수 없습니다.');
+      console.error('날씨 정보 조회 실패:', error);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  // 첫 번째 일정의 위치 정보로 날씨 조회
+  useEffect(() => {
+    if (plans.length > 0) {
+      const plan = plans[0];
+      let travelInfo: any = {};
+      try {
+        const text = plan.plan_data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+        const jsonStr = match ? match[1] : text;
+        travelInfo = JSON.parse(jsonStr);
+      } catch (e) {
+        travelInfo = {};
+      }
+
+      if (travelInfo.days?.[0]?.schedules?.[0]?.lat && travelInfo.days?.[0]?.schedules?.[0]?.lng) {
+        fetchWeatherData(
+          travelInfo.days[0].schedules[0].lat,
+          travelInfo.days[0].schedules[0].lng
+        );
+      }
+    }
+  }, [plans]);
+
+  // 날씨 정보를 텍스트로 변환
+  const getWeatherText = () => {
+    if (weatherLoading) return '날씨 정보 로딩 중...';
+    if (weatherError) return '날씨 정보를 가져올 수 없습니다.';
+    if (!weatherData || !weatherData.forecasts.length) return '날씨 정보 없음';
+
+    const currentWeather = weatherData.forecasts[0];
+    return `${weatherData.city.name} 현재 날씨: ${currentWeather.main.temp}°C, ${currentWeather.weather[0].description}`;
+  };
+
+  // 날짜별 날씨 예보 가져오기
+  const getWeatherForDate = (date: string) => {
+    if (!weatherData || !weatherData.forecasts.length) return null;
+
+    const targetDate = new Date(date);
+    const targetDateStr = targetDate.toISOString().split('T')[0];
+
+    const forecast = weatherData.forecasts.find(f => {
+      const forecastDate = new Date(f.dt * 1000);
+      return forecastDate.toISOString().split('T')[0] === targetDateStr;
+    });
+
+    return forecast;
+  };
+
+  // 날씨 아이콘 선택
+  const getWeatherIcon = (weatherMain: string, description: string) => {
+    const desc = description.toLowerCase();
+    
+    // 맑음 관련
+    if (weatherMain.toLowerCase() === 'clear') {
+      return '☀️'; // 맑음
+    }
+    
+    // 구름 관련
+    if (weatherMain.toLowerCase() === 'clouds') {
+      if (desc.includes('few clouds')) return '🌤️'; // 구름 조금
+      if (desc.includes('scattered clouds')) return '⛅'; // 구름 낀
+      if (desc.includes('broken clouds') || desc.includes('overcast clouds')) return '☁️'; // 흐림
+    }
+    
+    // 비 관련
+    if (weatherMain.toLowerCase() === 'rain') {
+      if (desc.includes('light rain')) return '🌦️'; // 가벼운 비
+      if (desc.includes('moderate rain')) return '🌧️'; // 보통 비
+      if (desc.includes('heavy rain')) return '⛈️'; // 강한 비
+      if (desc.includes('shower rain')) return '🌧️'; // 소나기
+    }
+    
+    // 눈 관련
+    if (weatherMain.toLowerCase() === 'snow') {
+      if (desc.includes('light snow')) return '🌨️'; // 가벼운 눈
+      if (desc.includes('heavy snow')) return '❄️'; // 강한 눈
+      if (desc.includes('sleet')) return '🌨️'; // 진눈깨비
+    }
+    
+    // 천둥번개
+    if (weatherMain.toLowerCase() === 'thunderstorm') {
+      if (desc.includes('light thunderstorm')) return '⛈️'; // 약한 천둥번개
+      if (desc.includes('heavy thunderstorm')) return '🌩️'; // 강한 천둥번개
+    }
+    
+    // 안개/연무
+    if (weatherMain.toLowerCase() === 'mist' || weatherMain.toLowerCase() === 'fog') {
+      return '🌫️';
+    }
+    
+    // 이슬비
+    if (weatherMain.toLowerCase() === 'drizzle') {
+      return '🌦️';
+    }
+    
+    return '🌤️'; // 기본값
+  };
+
+  // 일정 공유하기
+  const sharePlan = async (plan: any) => {
+    try {
+      let travelInfo: any = {};
+      try {
+        const text = plan.plan_data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+        const jsonStr = match ? match[1] : text;
+        travelInfo = JSON.parse(jsonStr);
+      } catch (e) {
+        travelInfo = {};
+      }
+
+      const title = travelInfo.title || '-';
+      const destination = travelInfo.destination || '';
+      const startDate = travelInfo.days?.[0]?.date || '';
+      const endDate = travelInfo.days?.[travelInfo.days?.length - 1]?.date || '';
+      
+      let shareText = `✈️ 여행 일정 공유\n\n`;
+      shareText += `제목: ${title}\n`;
+      if (destination) shareText += `여행지: ${destination}\n`;
+      if (startDate && endDate) shareText += `기간: ${startDate} ~ ${endDate}\n\n`;
+
+      // 날씨 정보 추가
+      if (weatherData) {
+        shareText += `※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.\n`;
+        shareText += `🌤️ 현재 날씨 정보\n`;
+        shareText += `${weatherData.city.name} 현재 날씨: ${weatherData.forecasts[0].main.temp}°C\n`;
+        shareText += `${weatherData.forecasts[0].weather[0].description}\n\n`;
+      }
+
+      // 항공 정보
+      if (plan.flight_info) {
+        shareText += `✈️ 항공 정보\n`;
+        const flight = plan.flight_info;
+        if (flight.itineraries?.[0]) {
+          shareText += `출국: ${flight.itineraries[0].segments[0]?.departure?.iataCode} → ${flight.itineraries[0].segments[0]?.arrival?.iataCode}\n`;
+          shareText += `날짜: ${flight.itineraries[0].segments[0]?.departure?.at?.slice(0, 10)}\n`;
+          shareText += `항공사: ${flight.itineraries[0].segments[0]?.carrierCode} ${flight.itineraries[0].segments[0]?.number}\n\n`;
+        }
+        if (flight.itineraries?.[1]) {
+          shareText += `귀국: ${flight.itineraries[1].segments[0]?.departure?.iataCode} → ${flight.itineraries[1].segments[0]?.arrival?.iataCode}\n`;
+          shareText += `날짜: ${flight.itineraries[1].segments[0]?.departure?.at?.slice(0, 10)}\n`;
+          shareText += `항공사: ${flight.itineraries[1].segments[0]?.carrierCode} ${flight.itineraries[1].segments[0]?.number}\n\n`;
+        }
+      }
+
+      // 호텔 정보
+      if (plan.accmo_info?.hotel) {
+        const hotel = plan.accmo_info.hotel;
+        shareText += `🏨 호텔 정보\n`;
+        shareText += `호텔명: ${hotel.hotel_name}\n`;
+        shareText += `주소: ${hotel.address}\n`;
+        if (hotel.checkin) shareText += `체크인: ${hotel.checkin}\n`;
+        if (hotel.checkout) shareText += `체크아웃: ${hotel.checkout}\n\n`;
+      }
+
+      // 일정 정보
+      if (travelInfo.days) {
+        shareText += `📅 상세 일정\n`;
+        travelInfo.days.forEach((day: any) => {
+          shareText += `\n[${day.date}] ${day.title}\n`;
+          if (day.schedules) {
+            day.schedules.forEach((schedule: any) => {
+              shareText += `- ${schedule.time || ''} ${schedule.name || ''}\n`;
+              if (schedule.notes) shareText += `  ${schedule.notes}\n`;
+            });
+          }
+        });
+      }
+
+      await Share.share({
+        message: shareText,
+        title: title
+      });
+    } catch (error) {
+      Alert.alert('공유 실패', '일정을 공유하는데 실패했습니다.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -326,6 +562,13 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                   {/* 목적지(destination) 필드가 없을 수 있으니 조건부 렌더링 */}
                   {destination !== '-' && <Text style={styles.date}>{destination}</Text>}
                   <Text style={styles.date}>{startDate} ~ {endDate}</Text>
+                  
+                  {/* 현재 날씨 정보 표시 */}
+                  <View style={styles.weatherContainer}>
+                    <Text style={{ color: '#888', fontSize: 12, textAlign: 'center', marginBottom: 2 }}>※ 날씨 정보는 오늘로부터 5일 뒤까지의 예보만 제공됩니다.</Text>
+                    <Text style={styles.weatherText}>{getWeatherText()}</Text>
+                  </View>
+
                   <View style={[
                     styles.statusBadge,
                     { backgroundColor: getStatusColor(status) + '20' }
@@ -337,45 +580,62 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
                   </View>
                 </View>
                 {/* 날짜별 큰 블럭: days -> schedules */}
-                {travelInfo.days?.map((day: any, idx: number) => (
-                  <View key={idx} style={styles.dayBlock}>
-                    <View style={{ position: 'relative', backgroundColor: '#f0f6ff', borderRadius: 10, padding: 12, marginBottom: 4 }}>
-                      <View style={{ paddingRight: 90 }}>
-                        <Text style={styles.dayTitle}>{day.date}</Text>
-                        <Text style={styles.daySubTitle}>{day.title}</Text>
+                {travelInfo.days?.map((day: any, idx: number) => {
+                  const weather = getWeatherForDate(day.date);
+                  return (
+                    <View key={idx} style={styles.dayBlock}>
+                      <View style={{ position: 'relative', backgroundColor: '#f0f6ff', borderRadius: 10, padding: 12, marginBottom: 4 }}>
+                        <View style={{ paddingRight: 90 }}>
+                          <Text style={styles.dayTitle}>{day.date}</Text>
+                          <Text style={styles.daySubTitle}>{day.title}</Text>
+                          {weather && (
+                            <View style={styles.dayWeather}>
+                              <Text style={styles.dayWeatherText}>
+                                {getWeatherIcon(weather.weather[0].main, weather.weather[0].description)} {weather.main.temp}°C
+                              </Text>
+                              <Text style={styles.dayWeatherDesc}>{weather.weather[0].description}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.expandButton, { position: 'absolute', top: 12, right: 12 }]}
+                          onPress={() => setExpandedDayIdxMap(prev => ({
+                            ...prev,
+                            [plan.planId]: prev[plan.planId] === idx ? null : idx
+                          }))}
+                        >
+                          <Text style={styles.expandButtonText}>{expandedDayIdxMap[plan.planId] === idx ? '닫기' : '확대'}</Text>
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity
-                        style={[styles.expandButton, { position: 'absolute', top: 12, right: 12 }]}
-                        onPress={() => setExpandedDayIdxMap(prev => ({
-                          ...prev,
-                          [plan.planId]: prev[plan.planId] === idx ? null : idx
-                        }))}
-                      >
-                        <Text style={styles.expandButtonText}>{expandedDayIdxMap[plan.planId] === idx ? '닫기' : '확대'}</Text>
-                      </TouchableOpacity>
+                      {/* 아코디언 상세 일정: schedules */}
+                      {expandedDayIdxMap[plan.planId] === idx && (
+                        <View style={{ marginTop: 10 }}>
+                          {day.schedules?.map((schedule: any, aIdx: number) => (
+                            <TouchableOpacity
+                              key={aIdx}
+                              style={styles.activityBlock}
+                              onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
+                            >
+                              <Text style={styles.activityText}>
+                                {schedule.time} - {schedule.name}
+                              </Text>
+                              {schedule.notes && (
+                                <Text style={styles.activityDesc}>{schedule.notes}</Text>
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
                     </View>
-                    {/* 아코디언 상세 일정: schedules */}
-                    {expandedDayIdxMap[plan.planId] === idx && (
-                      <View style={{ marginTop: 10 }}>
-                        {day.schedules?.map((schedule: any, aIdx: number) => (
-                          <TouchableOpacity
-                            key={aIdx}
-                            style={styles.activityBlock}
-                            onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
-                          >
-                            <Text style={styles.activityText}>
-                              {schedule.time} - {schedule.name}
-                            </Text>
-                            {schedule.notes && (
-                              <Text style={styles.activityDesc}>{schedule.notes}</Text>
-                            )}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ))}
+                  );
+                })}
                 <View style={styles.actionButtons}>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.shareButton]}
+                    onPress={() => sharePlan(plan)}
+                  >
+                    <Text style={[styles.actionButtonText, styles.shareButtonText]}>공유하기</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.actionButton, styles.editButton]}
                     onPress={() => navigation.navigate('EditSchedule', { plan })}
@@ -721,6 +981,42 @@ const styles = StyleSheet.create({
   expandableIcon: {
     fontSize: 16,
     color: '#1E88E5',
+  },
+  weatherContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  weatherText: {
+    color: '#1E88E5',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  dayWeather: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dayWeatherText: {
+    fontSize: 14,
+    color: '#1E88E5',
+    fontWeight: '500',
+  },
+  dayWeatherDesc: {
+    fontSize: 13,
+    color: '#666',
+  },
+  shareButton: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#fff',
+    marginRight: 10,
+  },
+  shareButtonText: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
   },
 });
 
