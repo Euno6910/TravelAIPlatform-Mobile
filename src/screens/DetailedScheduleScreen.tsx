@@ -65,6 +65,36 @@ function tryRefreshParent(navigation: any) {
   }
 }
 
+// title에서 5/31 등 날짜 추출 함수
+const extractDateFromTitle = (title?: string, baseYear?: number) => {
+  if (!title) return '';
+  const match = title.match(/^([0-9]{1,2})\/([0-9]{1,2})/);
+  if (match) {
+    const month = match[1].padStart(2, '0');
+    const day = match[2].padStart(2, '0');
+    const year = baseYear || new Date().getFullYear();
+    return `${year}-${month}-${day}`;
+  }
+  return '';
+};
+
+// title에서 날짜(5/31 등) 제거 후 나머지 제목만 반환
+const getTitleWithoutDate = (title?: string) => {
+  if (!title) return '';
+  // 앞부분 날짜(5/31 등)와 공백, 콜론, 일차 등 제거
+  return title.replace(/^([0-9]{1,2}\/[0-9]{1,2})[\s:·-]*|^[0-9]{1,2}일차[\s:·-]*/g, '').trim();
+};
+
+// daysArray에서 가장 앞의 연도 추출
+const getBaseYear = (daysArray: any[]) => {
+  for (const day of daysArray) {
+    if (day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date)) {
+      return Number(day.date.slice(0, 4));
+    }
+  }
+  return new Date().getFullYear();
+};
+
 const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigation, route }) => {
   const { planId } = route.params;
   const [loading, setLoading] = useState(true);
@@ -494,8 +524,10 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
             <View key={idx} style={styles.dayBlock}>
               <View style={styles.dayHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.dayTitle}>{day.date}</Text>
-                  <Text style={styles.daySubTitle}>{day.title}</Text>
+                  <Text style={styles.dayTitle}>{
+                    day.date || extractDateFromTitle(day.title, getBaseYear(daysArray)) || ''
+                  }</Text>
+                  <Text style={styles.daySubTitle}>{getTitleWithoutDate(day.title)}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.expandButton}
