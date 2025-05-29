@@ -4,10 +4,9 @@ import { Auth } from 'aws-amplify';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-//프로필 수정 기능
-// ✅ API 엔드포인트 설정 (네 API 주소 넣어줘야 함)
-const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/prod';
-const USER_PROFILE_API_URL = `${API_URL}/api/user/profile`;
+//사용자의 프로필 정보를 수정할 수 있는 화면
+const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage';
+const USER_PROFILE_API_URL = `${API_URL}/user/profile`;//MyProfileFunction
 
 // ✅ 타입 정확히 지정
 type EditProfileScreenProps = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;

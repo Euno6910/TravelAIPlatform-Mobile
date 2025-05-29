@@ -15,7 +15,7 @@ import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-//회원가입 화면 - 이메일, 이름, 생년월일, 전화번호, 비밀번호, 비밀번호 확인 입력, 회원가입 버튼 클릭 시 회원가입 처리, 이메일 인증 코드 입력 시 인증 완료 처리, 로그인 링크 클릭 시 로그인 화면으로 이동 
+//회원가입 화면
 type SignUpScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
 const SignUpScreen = ({ navigation }: { navigation: SignUpScreenNavigationProp }) => {

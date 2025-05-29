@@ -7,8 +7,8 @@ import { useFlight } from '../contexts/FlightContext';
 import { useHotel } from '../contexts/HotelContext';
 import { Auth } from 'aws-amplify';
 
-//여행계획 수정 화면
-const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
+//AI 일정 관리에서 계획을 수정하여 저장하는 화면
+const API_URL = 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/save_mobile';
 
 const EditScheduleScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

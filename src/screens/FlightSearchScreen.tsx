@@ -7,8 +7,8 @@ import { Calendar } from 'react-native-calendars';
 import Modal from 'react-native-modal';
 
 //항공편 검색 화면
-const API_ENDPOINT = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/amadeus/FlightOffersSearch';
-const AUTOCOMPLETE_ENDPOINT = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/amadeus/Airport_CitySearch';
+const API_ENDPOINT = 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/amadeus/FlightOffersSearch';//FlightOffersSearch
+const AUTOCOMPLETE_ENDPOINT = 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/amadeus/Airport_CitySearch';//Airport_CitySearch
 
 const FlightSearchScreen = () => {
   const navigation = useNavigation();

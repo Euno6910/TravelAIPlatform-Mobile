@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Auth } from 'aws-amplify';
 
+//사용자의 모든 여행 일정을 목록 형태로 보여주는 화면(모든 일정 관리)
 type AllSchedulesScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AllSchedules'>;
 };
@@ -45,7 +46,7 @@ const AllSchedulesScreen: React.FC<AllSchedulesScreenProps> = ({ navigation }) =
       const token = session.getIdToken().getJwtToken();
 
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/checklist',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/travel/checklist', //checklistfunction
         {
           method: 'POST',
           headers: {

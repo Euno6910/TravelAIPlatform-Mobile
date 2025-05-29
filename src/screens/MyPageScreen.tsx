@@ -14,11 +14,11 @@ import { Auth } from 'aws-amplify';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, UserAttributes } from '../navigation/AppNavigator';
 
+//마이페이지 화면 - 사용자 정보 조회, 프로필 수정과 회원탈퇴, 계획 관리의 게이트
 // API URL 설정
-const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/prod';
-const MY_PAGE_API_URL = `${API_URL}/api/user/mypage`;
+const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage';//MyPageFunction
+const MY_PAGE_API_URL = `${API_URL}/user/mypage`;
 
-//마이페이지 화면 - 사용자 정보 조회, 프로필 수정 링크 클릭 시 프로필 수정 화면으로 이동  
 type MyPageScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyPage'>;
 
 const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }) => {
@@ -74,7 +74,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
       const token = session.getIdToken().getJwtToken();
 
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/load',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/load_mobile',//LoadPlanFunction
         {
           method: 'POST',
           headers: {
@@ -144,7 +144,7 @@ const MyPageScreen = ({ navigation }: { navigation: MyPageScreenNavigationProp }
 
       // 회원탈퇴 API 호출
       const response = await fetch(
-        'https://j0jnhscmhk.execute-api.ap-northeast-2.amazonaws.com/default/deleteUserProfile',
+        'https://j0jnhscmhk.execute-api.ap-northeast-2.amazonaws.com/default/deleteUserProfile',//deleteUserProfile
         {
           method: 'POST',
           headers: {

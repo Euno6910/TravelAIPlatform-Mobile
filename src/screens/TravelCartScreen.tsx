@@ -13,7 +13,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { RouteProp } from '@react-navigation/native';
 import { Auth } from 'aws-amplify';
 
-//마이페이지 - 장바구니
+//마이페이지 - 장바구니 - 여행계획 결제
 type TravelCartScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'TravelCart'>;
   route: RouteProp<RootStackParamList, 'TravelCart'>;
@@ -67,7 +67,7 @@ const TravelCartScreen: React.FC<TravelCartScreenProps> = ({ navigation, route }
       const token = session.getIdToken().getJwtToken();
       const planId = plan.plan_id || plan.planId || plan.id;
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/save_mobile',//SavePlanFunction
         {
           method: 'POST',
           headers: {

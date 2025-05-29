@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 
+//스플래시 화면
 const SplashScreen = () => {
   const [showTitle, setShowTitle] = useState(false);
 

@@ -22,7 +22,7 @@ import { useFlight } from '../contexts/FlightContext';
 import { useNavigation } from '@react-navigation/native';
 import { useHotel } from '../contexts/HotelContext';
 
-//앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동
+//앱의 메인 화면 - 로그인 상태 확인, 로그인 화면 이동, 로그아웃 기능, 로그인 시 마이페이지 이동가능, ai 챗봇 기능
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = () => {
@@ -126,7 +126,7 @@ const HomeScreen = () => {
 
       console.log('API 요청 데이터:', requestData);
 
-      const response = await fetch('https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/python-plan', {
+      const response = await fetch('https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/create_mobile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

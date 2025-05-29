@@ -16,7 +16,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { RouteProp } from '@react-navigation/native';
 import { requestNotificationPermission, scheduleNotification, showNotification } from '../utils/notification';
 
-//마이페이지 - 여행계획
+//마이페이지 - AI 일정관리
 type TravelScheduleScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'TravelSchedule'>;
   route: RouteProp<RootStackParamList, 'TravelSchedule'>;
@@ -153,7 +153,7 @@ const TravelScheduleScreen: React.FC<TravelScheduleScreenProps> = ({ navigation,
     setWeatherError(null);
     try {
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/weatherAPI',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/weatherAPI',//weatherAPI
         {
           method: 'POST',
           headers: {

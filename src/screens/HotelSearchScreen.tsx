@@ -73,7 +73,7 @@ const HotelSearchScreen = () => {
       }
       // 2. 호텔 검색 API 호출
       const response = await axios.post(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/Booking-com/SearchHotelsByCoordinates',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/booking-com/SearchHotelsByCoordinates',//SearchHotelsByCoordinates
         {
           type: 'preferred_hotels',
           city: {

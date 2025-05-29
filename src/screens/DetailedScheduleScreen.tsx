@@ -18,7 +18,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Auth } from 'aws-amplify';
 import { requestNotificationPermission, showNotification } from '../utils/notification';
 
-// 상세 일정 화면
+// 이 코드는 여행 일정의 상세 정보를 보여주는 화면 (모든 일정 보기 - 디테일)
 type DetailedScheduleScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DetailedSchedule'>;
   route: RouteProp<RootStackParamList, 'DetailedSchedule'>;
@@ -151,7 +151,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
       const token = session.getIdToken().getJwtToken();
 
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/checkplan',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/travel/checkplan',//checkplanfunction
         {
           method: 'POST',
           headers: {
@@ -289,7 +289,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
     setWeatherError(null);
     try {
       const response = await fetch(
-        'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/weatherAPI',
+        'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/weatherAPI',//weatherAPI
         {
           method: 'POST',
           headers: {

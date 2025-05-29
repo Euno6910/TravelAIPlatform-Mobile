@@ -5,7 +5,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Auth } from 'aws-amplify';
 
-const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
+//모든 일정관리 화면을 수정하여 저장 하는 화면
+const API_URL = 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/save_mobile';//SavePlanFunction
 
 const PlanEditScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

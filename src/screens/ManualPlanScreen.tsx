@@ -8,9 +8,9 @@ import { useHotel } from '../contexts/HotelContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Auth } from 'aws-amplify';
 
-const API_URL = 'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/save';
+const API_URL = 'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/mobile/save_mobile';//SavePlanFunction
 
-//여행 계획 생성 화면 - 여행 계획 생성 단계별 입력, 계획 생성 결과 화면으로 이동  
+//여행 계획 생성 화면 - AI도움없이 개인적으로 계획생성
 const PlanCreationScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { selectedFlight, setSelectedFlight } = useFlight();
