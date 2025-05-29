@@ -218,7 +218,15 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
         }
 
         setTravelInfo(parsedTravelInfo);
-        setDaysArray(parsedDays);
+        // days에서 모든 값이 빈 문자열인 일정은 제외
+        setDaysArray(parsedDays.filter(day => {
+          if (!day) return false;
+          // day.title, day.date, day.schedules 모두 비어있으면 제외
+          const isEmptyTitle = !day.title || day.title.trim() === '';
+          const isEmptyDate = !day.date || day.date.trim() === '';
+          const isEmptySchedules = !day.schedules || day.schedules.length === 0 || day.schedules.every((s: any) => (!s.time || s.time.trim() === '') && (!s.name || s.name.trim() === '') && (!s.notes || s.notes.trim() === ''));
+          return !(isEmptyTitle && isEmptyDate && isEmptySchedules);
+        }));
 
         if (data.flightInfos && data.flightInfos.length > 0) {
           const summaries = data.flightInfos.map((flight, index) => buildFlightSummary(flight, `flight-${index}`));
@@ -283,8 +291,51 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
     setupNotifications();
   }, [daysArray]);
 
+  // 위치 정보가 있는 첫 번째 스케줄로 날씨 조회
+  useEffect(() => {
+    let found = false;
+    if (daysArray.length > 0) {
+      for (const day of daysArray) {
+        if (day.schedules && day.schedules.length > 0) {
+          for (const schedule of day.schedules) {
+            if (
+              schedule.lat !== undefined &&
+              schedule.lng !== undefined &&
+              schedule.lat !== null &&
+              schedule.lng !== null &&
+              !isNaN(Number(schedule.lat)) &&
+              !isNaN(Number(schedule.lng))
+            ) {
+              fetchWeatherData(schedule.lat, schedule.lng);
+              found = true;
+              break;
+            }
+          }
+        }
+        if (found) break;
+      }
+      if (!found) {
+        setWeatherData(null);
+      }
+    } else {
+      setWeatherData(null);
+    }
+  }, [daysArray]);
+
   // 날씨 정보 가져오기
   const fetchWeatherData = async (lat: number, lng: number) => {
+    if (
+      lat === undefined ||
+      lng === undefined ||
+      lat === null ||
+      lng === null ||
+      isNaN(Number(lat)) ||
+      isNaN(Number(lng))
+    ) {
+      setWeatherData(null);
+      setWeatherError('위치 정보가 없습니다.');
+      return;
+    }
     setWeatherLoading(true);
     setWeatherError(null);
     try {
@@ -312,16 +363,6 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
       setWeatherLoading(false);
     }
   };
-
-  // 첫 번째 일정의 위치 정보로 날씨 조회
-  useEffect(() => {
-    if (daysArray.length > 0 && daysArray[0].schedules?.length > 0) {
-      const firstSchedule = daysArray[0].schedules[0];
-      if (firstSchedule.lat && firstSchedule.lng) {
-        fetchWeatherData(firstSchedule.lat, firstSchedule.lng);
-      }
-    }
-  }, [daysArray]);
 
   // 날씨 정보를 텍스트로 변환
   const getWeatherText = () => {
@@ -770,21 +811,26 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
                 </View>
                 {expandedDayIdxMap[idx] && (
                   <View>
-                    {day.schedules?.map((schedule: any, aIdx: number) => (
-                      <TouchableOpacity
-                        key={aIdx}
-                        style={styles.activityBlock}
-                        onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.activityText}>
-                          {schedule.time} - {schedule.name}
-                        </Text>
-                        {schedule.notes && (
-                          <Text style={styles.activityDesc}>{schedule.notes}</Text>
-                        )}
-                      </TouchableOpacity>
-                    ))}
+                    {day.schedules?.map((schedule: any, aIdx: number) => {
+                      // 빈 객체(모든 주요 필드가 '')는 렌더링하지 않음
+                      const isEmpty = (!schedule.time || schedule.time.trim() === '') && (!schedule.name || schedule.name.trim() === '') && (!schedule.notes || schedule.notes.trim() === '');
+                      if (isEmpty) return null;
+                      return (
+                        <TouchableOpacity
+                          key={aIdx}
+                          style={styles.activityBlock}
+                          onPress={() => openGoogleMaps(schedule.lat, schedule.lng, schedule.address, schedule.name)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.activityText}>
+                            {schedule.time} - {schedule.name}
+                          </Text>
+                          {schedule.notes && (
+                            <Text style={styles.activityDesc}>{schedule.notes}</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
                     {(!day.schedules || day.schedules.length === 0) && (
                       <Text style={styles.noScheduleText}>스케줄 없음</Text>
                     )}
@@ -826,7 +872,7 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
                         const session = await Auth.currentSession();
                         const token = session.getIdToken().getJwtToken();
                         const response = await fetch(
-                          'https://lngdadu778.execute-api.ap-northeast-2.amazonaws.com/Stage/api/travel/deleteplan',
+                          'https://9b5hbw9u25.execute-api.ap-northeast-2.amazonaws.com/Stage/travel/deleteplan',//deleteplanfunction
                           {
                             method: 'DELETE',
                             headers: {

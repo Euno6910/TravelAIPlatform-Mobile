@@ -102,16 +102,22 @@ const EditScheduleScreen = () => {
       // 항공권 정보를 schedules에 포함시키기 위해 days를 변환
       let flightData = selectedFlight || flight;
       const daysWithFlights = days.map((day, idx) => {
-        let schedules = day.schedules || [];
-        // 첫째 날에만 항공권 정보 추가(예시, 필요에 따라 위치 조정)
+        // 1. 빈 일정 필터링
+        let schedules = (day.schedules || []).filter((s: any) =>
+          s.time !== '' || s.name !== '' || s.notes !== ''
+        );
+
+        // 2. 첫째 날에만 항공권 정보 추가 (중복 방지)
         if (idx === 0 && flightData) {
           const flightArray = Array.isArray(flightData) ? flightData : [flightData];
-          // 항공권 객체에 type이 없으면 type: 'Flight_Departure'로 추가
-          const flightsWithType = flightArray.map(f => ({
-            ...f,
-            type: f.type || 'Flight_Departure',
-          }));
-          schedules = [...flightsWithType, ...schedules];
+          const hasFlight = schedules.some((s: any) => s.type === 'Flight_Departure');
+          if (!hasFlight) {
+            const flightsWithType = flightArray.map(f => ({
+              ...f,
+              type: f.type || 'Flight_Departure',
+            }));
+            schedules = [...flightsWithType, ...schedules];
+          }
         }
         return { ...day, schedules };
       });

@@ -58,14 +58,17 @@ const AllSchedulesScreen: React.FC<AllSchedulesScreenProps> = ({ navigation }) =
       const data = await response.json();
       
       if (data.success) {
-        const mappedPlans = data.plans.map((plan: any) => ({
-          plan_id: plan.plan_id,
-          name: plan.name,
-          last_updated: plan.last_updated,
-          paid_plan: plan.paid_plan,
-          is_shared_with_me: plan.is_shared_with_me,
-          original_owner: plan.original_owner
-        }));
+        const mappedPlans = data.plans
+          .map((plan: any) => ({
+            plan_id: plan.plan_id,
+            name: plan.name,
+            last_updated: plan.last_updated,
+            paid_plan: plan.paid_plan,
+            is_shared_with_me: plan.is_shared_with_me,
+            original_owner: plan.original_owner
+          }))
+          // 빈 이름 등 주요 필드가 모두 비어있는 일정은 제외
+          .filter((plan: any) => plan.name && plan.name.trim() !== '');
         setPlans(mappedPlans);
       } else {
         throw new Error(data.message || '일정을 불러오는데 실패했습니다.');
