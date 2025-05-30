@@ -494,8 +494,9 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
   };
 
   const buildAccmoSummary = (accmo: any, key: string) => {
-    if (!accmo || !accmo.hotel) return null;
-    const hotel = accmo.hotel;
+    // hotel 정보가 accmo에 직접 있을 수도 있음
+    const hotel = accmo.hotel || accmo;
+    if (!hotel) return null;
     return (
       <View key={key} style={styles.accmoCard}>
         {hotel.main_photo_url && (
@@ -507,36 +508,36 @@ const DetailedScheduleScreen: React.FC<DetailedScheduleScreenProps> = ({ navigat
         )}
         <View style={styles.accmoInfo}>
           <View style={styles.accmoHeader}>
-            <Text style={styles.accmoName}>{hotel.hotel_name}</Text>
-            {hotel.review_score && (
+            <Text style={styles.accmoName}>{hotel.hotel_name ? String(hotel.hotel_name) : ''}</Text>
+            {(hotel.review_score !== undefined && hotel.review_score !== null) && (
               <View style={styles.reviewScore}>
-                <Text style={styles.reviewScoreText}>{hotel.review_score}</Text>
-                <Text style={styles.reviewScoreWord}>{hotel.review_score_word}</Text>
+                <Text style={styles.reviewScoreText}>{String(hotel.review_score)}</Text>
+                <Text style={styles.reviewScoreWord}>{hotel.review_score_word ? String(hotel.review_score_word) : ''}</Text>
               </View>
             )}
           </View>
           
           <View style={styles.accmoDetails}>
-            <Text style={styles.accmoAddress}>{hotel.address}</Text>
-            <Text style={styles.accmoCity}>{hotel.city}</Text>
+            <Text style={styles.accmoAddress}>{hotel.address ? String(hotel.address) : ''}</Text>
+            <Text style={styles.accmoCity}>{hotel.city ? String(hotel.city) : ''}</Text>
             
             <View style={styles.checkInOutContainer}>
               <View style={styles.checkInOut}>
                 <Text style={styles.checkInOutLabel}>체크인</Text>
-                <Text style={styles.checkInOutValue}>{hotel.checkin || accmo.checkIn}</Text>
-                <Text style={styles.checkInOutTime}>{hotel.checkin_from}</Text>
+                <Text style={styles.checkInOutValue}>{hotel.checkin ? String(hotel.checkin) : accmo.checkIn ? String(accmo.checkIn) : ''}</Text>
+                <Text style={styles.checkInOutTime}>{hotel.checkin_from ? String(hotel.checkin_from) : ''}</Text>
               </View>
               <View style={styles.checkInOut}>
                 <Text style={styles.checkInOutLabel}>체크아웃</Text>
-                <Text style={styles.checkInOutValue}>{hotel.checkout || accmo.checkOut}</Text>
-                <Text style={styles.checkInOutTime}>{hotel.checkout_until}</Text>
+                <Text style={styles.checkInOutValue}>{hotel.checkout ? String(hotel.checkout) : accmo.checkOut ? String(accmo.checkOut) : ''}</Text>
+                <Text style={styles.checkInOutTime}>{hotel.checkout_until ? String(hotel.checkout_until) : ''}</Text>
               </View>
             </View>
 
             {hotel.price && (
               <View style={styles.priceContainer}>
                 <Text style={styles.priceLabel}>객실 요금</Text>
-                <Text style={styles.priceValue}>{hotel.price}</Text>
+                <Text style={styles.priceValue}>{hotel.price ? String(hotel.price) : ''}</Text>
               </View>
             )}
           </View>
